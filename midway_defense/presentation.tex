@@ -1,0 +1,88 @@
+\documentclass[aspectratio=169, usenames, dvipsnames]{beamer}
+
+\usepackage{xcolor}
+
+% set up minted
+\usepackage{minted}
+\setminted{autogobble=true, linenos=false, fontsize=\footnotesize}
+\usemintedstyle{friendly}
+
+\definecolor{rustcolor}{rgb}{0.95,0.95,0.95}
+
+% setup for footnotes...
+\addtobeamertemplate{footnote}{\vspace{-8pt}\advance\hsize-0.5cm}{\vspace{8pt}}
+\makeatletter
+\renewcommand*{\footnoterule}{\kern -3pt \hrule \@width 2in \kern 10.6pt}
+\setbeamerfont{footnote}{size=\tiny}
+
+\title{Ohua as STM alternative for shared state applications}
+\subtitle{Master Midway Defense}
+\date{29. January 2020}
+\author{Felix Wittwer}
+
+\usetheme{ccc}
+
+\begin{document}
+
+\begin{frame}
+\titlepage
+\end{frame}
+
+\begin{frame}{Ohua\footnotemark[1]}
+  % TODO: Chart showing what it does (?), bullet point that we want to make a comparison
+  % \begin{itemize}
+  %   \item framework for implicit parallel programming
+  %   \item<2-> derives dataflow graph from algorithm specification
+  %   \item<3-> runs optimizations on graph to exploit parallelism at compile time
+  % \end{itemize}
+
+  % \vfill
+
+  % \uncover<4->{\textbf{Challenges:}}
+  % \begin{itemize}
+  % \item<4->{Ohua does not provide primitives for transactions}
+  %   \begin{itemize}
+  %   \item<5-> Use \texttt{smap} and shared state
+  %   \end{itemize}
+  % \item<6-> Problem: Collision handling
+  %   \begin{itemize}
+  %   \item<7-> Collect failed jobs and call transaction recursively
+  %   \end{itemize}
+  % \end{itemize}
+  \footnotetext[1]{Ertel et al. "Ohua: Implicit Dataflow Programming for Concurrent Systems." PPPJ. ACM, 2015.}
+\end{frame}
+
+\begin{frame}{Throwback: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \textbf{Given:} 3D maze, pairs of points\\[\baselineskip]
+
+      \uncover<2->{\textbf{Goal:} Map a path between each pair of points\\[\baselineskip]}
+
+      \uncover<3->{\textbf{Implementation:}}
+      \begin{itemize}
+      \item<3-> parallel search for new paths
+      \item<4-> merge paths into the maze\\\uncover<5->{$\rightarrow$ retry if path crosses other paths}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics<1-2>[width=.9\textwidth]{img/1-maze_points}%
+        \includegraphics<3>[width=.9\textwidth]{img/2-maze_paths}%
+        \includegraphics<4>[width=.9\textwidth]{img/4-maze_update2}%
+        \includegraphics<5->[width=.9\textwidth]{img/5-maze_update3}%
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Throwback: Early Results}
+  % TODO: basically the old graphs with the bad performance
+\end{frame}
+
+\begin{frame}
+  % TODO: Show new benchmark results (present day)
+\end{frame}
+
+
+\end{document}
