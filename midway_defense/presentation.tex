@@ -102,9 +102,9 @@
     \begin{column}{0.45\textwidth}
       \begin{itemize}
         \item Ohua: one measuring point
-        \item Speedup < 0.5
-        \item<2-> Bad resource usage
-        \item<2-> No configurable threadpool size
+        \item Speedup < 0.5\\[.9\baselineskip]
+        \item<2-> parallelizable problem that would be solved with locks
+        \item<2-> Ohua's aim: offer lock-free alternative
       \end{itemize}
     \end{column}
   \end{columns}
@@ -138,7 +138,7 @@
       \uncover<3->{\inputminted[bgcolor=rustcolor, fontsize=\tiny]{rust}{code/split.rs}}
     \end{column}
   \end{columns}
-  
+
   \begin{itemize}
     \item<2-> Split worklist into $m$ equally large parts and run path-finding data-parallel
   \end{itemize}
@@ -156,7 +156,7 @@
       \vspace{1.5em}
       \uncover<5->{\textbf{Reason:} Straggler Problem}
       \begin{itemize}
-        \item<6-> Synchronization points force all threads to wait
+        \item<5-> Synchronization points force all threads to wait
       \end{itemize}
     \end{column}
     \begin{column}{0.55\textwidth}
@@ -168,14 +168,15 @@
 \end{frame}
 
 \begin{frame}{Straggler Problem with Splitting}
+  Instruments trace for 4-split implementation:
   \includegraphics[width=\textwidth,keepaspectratio]{img/cpu_load_split.png}
-  
+
   \vfill
   \begin{itemize}
     \item<2-> Worklists don't take equally long to process
     \item<3-> All threads are forced to wait at barrier
     \begin{itemize}
-      \item<3-> each collision affects execution time twice
+      \item<4-> each recomputation affects execution time twice
       \item<4-> uses more processing time and causes slack time for other cores
     \end{itemize}
   \end{itemize}
@@ -198,8 +199,12 @@
 
 \begin{frame}{Transformation 3: Improve Resource Utilization}
   \begin{itemize}
-    \item further improve performance by utilizing work-stealing algorithms
+    \item further improve performance by utilizing work-stealing algorithms\\[\baselineskip]
     \item execute parallel computations on top of \texttt{tokio} framework
+    \begin{itemize}
+      \item<2-> schedule computations as tasks on threadpool
+      \item<3-> when thread is done it can steal work from other threads
+    \end{itemize}
   \end{itemize}
 \end{frame}
 
@@ -216,8 +221,8 @@
         \item<2-> Proof of concept: Ohua almost on par with \alert{\texttt{stm}}
         \item<3-> Advantage: deterministic execution model
         \begin{itemize}
-          \item<5-> allows better debugging
-          \item<6-> also reflected by execution times
+          \item<3-> allows better debugging
+          \item<5-> also reflected by execution times
         \end{itemize}
       \end{itemize}
     \end{column}
@@ -228,7 +233,7 @@
   \textbf{General-purpose transformations applied:}\\
 
   \begin{enumerate}
-    \item<2-> Data parallelism for stateless functions
+    \item<2-> Data parallelism for stateless loop computations
     \begin{itemize}
       \item<2-> improve execution times\\[1.1\baselineskip]
     \end{itemize}
@@ -245,8 +250,8 @@
 
 \begin{frame}{Other benchmarks}
   \begin{itemize}
-    \item According to Minh et al.\footnotemark[2] applications for \alert{\texttt{stm}} are manifold
-    \item<2-> Each has own behavioral patterns\\\uncover<3->{$\rightarrow$ test Ohua on representative application range}
+    \item According to Minh et al.\footnotemark[2] applications for \alert{\texttt{stm}} are manifold\\[\baselineskip]
+    \item<2-> Each has own behavioral patterns\\\uncover<2->{$\rightarrow$ test transformations on representative application range}
   \end{itemize}
   \footnotetext[2]{Minh, Chi Cao, et al. "STAMP: Stanford transactional applications for multi-processing." 2008 IEEE International Symposium on Workload Characterization. IEEE, 2008.}
 \end{frame}
@@ -275,7 +280,7 @@
   \begin{enumerate}
     \item Port 2-3 more benchmarks
     \begin{itemize}
-      \item verify that found optimizations are applicable to other problem classes\\[1.2\baselineskip]
+      \item verify that found optimizations are applicable to other problem classes normally solved wirh STM\\[1.2\baselineskip]
     \end{itemize}
     \item<2-> Implement compiler optimizations
     \begin{itemize}
@@ -306,7 +311,7 @@
 
 \begin{frame}{Backup: Straggler Problem in STM}
   \includegraphics[width=\textwidth,keepaspectratio]{img/cpu_load_stm.png}
-  
+
   \vfill
   \begin{itemize}
     \item<2-> STM interleaves reads and writes on shared data
