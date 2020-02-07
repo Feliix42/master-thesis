@@ -1,0 +1,93 @@
+% !TEX root = thesis.tex
+
+
+% **************************************************
+% Files' Character Encoding
+% **************************************************
+\usepackage[utf8]{inputenc}
+
+
+% **************************************************
+% Information and Commands for Reuse
+% **************************************************
+\newcommand{\thesisTitle}{Ohua as an STM alternative for shared state applications}
+\newcommand{\thesisName}{Felix Wittwer}
+\newcommand{\thesisSubject}{Compiler Construction}
+\newcommand{\thesisDate}{May 18, 2020}
+\newcommand{\thesisVersion}{Draft-\today}
+
+\newcommand{\thesisFirstReviewer}{Prof. Dr.-Ing. Jeronimo Castrillon}
+\newcommand{\thesisFirstReviewerUniversity}{\protect{TU Dresden}}
+\newcommand{\thesisFirstReviewerDepartment}{Chair for Compiler Construction}
+
+\newcommand{\thesisSecondReviewer}{Dr. Michael Roitzsch}
+\newcommand{\thesisSecondReviewerUniversity}{\protect{TU Dresden}}
+\newcommand{\thesisSecondReviewerDepartment}{Chair for Operating Systems}
+
+\newcommand{\thesisFirstSupervisor}{Sebastian Ertel}
+
+\newcommand{\thesisUniversity}{\protect{TU Dresden}}
+\newcommand{\thesisUniversityDepartment}{Department of Computer Science}
+\newcommand{\thesisUniversityInstitute}{Institute of Computer Engineering}
+\newcommand{\thesisUniversityGroup}{Chair for Compiler Construction}
+\newcommand{\thesisUniversityCity}{Dresden}
+\newcommand{\thesisUniversityStreetAddress}{}
+\newcommand{\thesisUniversityPostalCode}{01062}
+
+
+% **************************************************
+% Debug LaTeX Information
+% **************************************************
+%\listfiles
+
+
+% **************************************************
+% Load and Configure Packages
+% **************************************************
+\usepackage[english]{babel} % babel system, adjust the language of the content
+\PassOptionsToPackage{% setup clean thesis style
+    figuresep=colon,%
+    hangfigurecaption=false,%
+    hangsection=true,%
+    hangsubsection=true,%
+    sansserif=false,%
+    configurelistings=true,% -- ?
+    colorize=full,%
+    colortheme=bluemagenta,%
+    configurebiblatex=true,%
+    bibsys=biber,%
+    bibfile=bib-refs,%
+    bibstyle=numeric,%
+    bibsorting=nty,% -- ?
+}{cleanthesis}
+\usepackage{cleanthesis}
+
+\hypersetup{% setup the hyperref-package options
+    pdftitle={\thesisTitle},    %   - title (PDF meta)
+    pdfsubject={\thesisSubject},%   - subject (PDF meta)
+    pdfauthor={\thesisName},    %   - author (PDF meta)
+    plainpages=false,           %   -
+    colorlinks=false,           %   - colorize links?
+    pdfborder={0 0 0},          %   -
+    breaklinks=true,            %   - allow line break inside links
+    bookmarksnumbered=true,     %
+    bookmarksopen=true          %
+}
+
+% **************************************************
+% Other Packages
+% **************************************************
+\usepackage{scrhack}
+
+% minted
+\usepackage{minted}
+\setminted{autogobble=true, linenos=true}
+\usemintedstyle{friendly}
+
+
+
+% **************************************************
+% Own commands for use within the thesis
+% **************************************************
+
+\newcommand{\rust}[1]{\mintinline{rust}{#1}}
