@@ -1,13 +1,33 @@
 % !TEX root = ../thesis.tex
 %
-% \chapter{Experimental Setup}
-% \label{sec:experiments}
+\chapter{Experimental Setup}
+\label{sec:experiments}
+
+In order to compare the performance of Software Transactional Memory against Ohua, we employ a set of benchmarks originally proposed by Minh et al. \cite{minh2008stamp}.
+In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare our performance against STM.
+Additionally, we will discuss the values measured during execution of the benchmarks and their relevance for the evaluation.
+
+\section{Benchmark Choice}
+
+% TODO: Bring in something about irregular applications/amorphous data parallelism?
+
+To provide a fair and comprehensive evaluation for Ohua and the transformations introduced in chapter \ref{sec:transformations}, as well as the STM reference implementation in Rust, we chose the \emph{Stanford Transactional Applications for Multi-Processing} suite.
+This benchmark suite was designed by Minh et al. to provide a wide variety of applications and use cases to test Transactional Memory applications against.
+With their work, the authors attempt to cover applications from different domains with varying use cases for TM applications.
+Therefore, applications exhibit varying characteristics regarding the time they spend in transactions, frequency of transaction usage and contention.
+We use a subset of the benchmarks the authors presented to look into Ohua's performance and identify scenarios in which we may under- or outperform STM.
+
+% tables and conclusions from my earlier notes
+% explain why i chose bench xy
+% explain benches
 
 
 % - Part 1: Benchmark Choice
 %   - which benchmarks did I choose for my thesis, and why? outline the parameters and reasons for the decision
 %   - discuss parameters we used to run the benchmarks
 %   - Give short overview over the used benchmarks
+
+% \section{Measured Values}
 % - Part 2: relevant data points: What did we measure? What does it say about performance?
 %   - execution time
 %   - CPU time (as substitute for power consumption)
