@@ -1,25 +1,74 @@
 % !TEX root = ../thesis.tex
 %
-\chapter{Experimental Setup}
+\chapter{Experimental Setup}%
 \label{sec:experiments}
 
-In order to compare the performance of Software Transactional Memory against Ohua, we employ a set of benchmarks originally proposed by Minh et al. \cite{minh2008stamp}.
-In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare our performance against STM.
+In order to compare the performance of Software Transactional Memory against Ohua, we employ a set of benchmarks originally proposed by Minh et al.~\cite{minh2008stamp}.
+In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare Ohua's performance against STM.
 Additionally, we will discuss the values measured during execution of the benchmarks and their relevance for the evaluation.
 
 \section{Benchmark Choice}
 
-% TODO: Bring in something about irregular applications/amorphous data parallelism?
+\todo{Maybe mention irregular applications/amorphous data parallelism?}
+After presenting our transformations for Ohua in chapter~\ref{sec:transformations}, we now wanted to compare its performance against STM in order to evaluate if Ohua could indeed be a suitable replacement for developing parallelized irregular applications.
+In order to provide a comprehensive comparison, we chose to use the \emph{Stanford Transactional Applications for Multi-Processing} benchmark suite~\cite{minh2008stamp}.
+Introduced by Minh et al., it was designed as benchmark suite for software transactional memory frameworks.
+The authors included 8 applications from different application areas in their suite.
+These are supposed to ressemble the diverse landscape of parallelism in applications developers might face.
+In particular, the STAMP suite contains examples from different application domains and varying use cases for transactional memory such as high-contention and low-contention scenarios.
+The tables~\ref{tab:experiments:overview} and~\ref{tab:experiments:categorization} show a basic characterization of the benchmarks in terms of their usage of transactions.
+For each example application, the authors also provide at least three different parameter classes or inputs to model small, medium and large workloads.
 
-To provide a fair and comprehensive evaluation for Ohua and the transformations introduced in chapter \ref{sec:transformations}, as well as the STM reference implementation in Rust, we chose the \emph{Stanford Transactional Applications for Multi-Processing} suite.
-This benchmark suite was designed by Minh et al. to provide a wide variety of applications and use cases to test Transactional Memory applications against.
-With their work, the authors attempt to cover applications from different domains with varying use cases for TM applications.
-Therefore, applications exhibit varying characteristics regarding the time they spend in transactions, frequency of transaction usage and contention.
-We use a subset of the benchmarks the authors presented to look into Ohua's performance and identify scenarios in which we may under- or outperform STM.
+\begin{table}
+    \centering
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Application} & \textbf{Instructions per Transaction} (mean) & \textbf{Time spent in transactions}\\\hline\hline
+        labyrinth & 219,571 & 100\%\\\hline
+        bayes & 60,584 & 83\%\\\hline
+        yada & 9,795 & 100\%\\\hline
+        vacation & 3,223 & 86\%\\\hline
+        genome & 1,717 & 97\%\\\hline
+        intruder & 330 & 33\%\\\hline
+        kmeans & 117 & 7\%\\\hline
+        ssca2 & 50 & 17\%\\\hline
+    \end{tabular}
+    \label{tab:experiments:overview}
+    \caption{A basic characterization of STAMP applications, comparing the mean number of instructions per transaction and the overall percentage of time the application spends in transactions. These numbers stem from a C implementation and have been adapted from Minh et al.~\cite{minh2008stamp}}
+\end{table}
 
-% tables and conclusions from my earlier notes
-% explain why i chose bench xy
-% explain benches
+As the authors only provided a C-based reference implementation for their applications, we had to reimplement them in Rust to rule out language-specific performance changes.\todo{Hence, these numbers from the table do not match for our implementation in Rust, we had to reimplement it in a Rust-specific way}
+
+\begin{table}
+    \centering
+    \begin{tabular}{|l|l|l|l|l|}
+        \hline
+        \textbf{Application} & \textbf{tx length} & \textbf{r/w set} & \textbf{tx time} & \textbf{Contention}\\\hline\hline
+        labyrinth & long & large & high & high\\\hline
+        bayes & long & large & high & high\\\hline
+        yada & long & large & high & medium\\\hline
+        vacation & medium & medium & high & low/medium\\\hline
+        genome & medium & medium & high & low\\\hline
+        intruder & short & medium & medium & high\\\hline
+        kmeans & short & small & low & low\\\hline
+        ssca2 & short & small & low & low\\\hline
+    \end{tabular}
+    \label{tab:experiments:categorization}
+    \caption{A qualitative summary of each STAMP application's runtime transactional characteristics. The length of a transaction is determined by the number of instructions it encompasses. The characteristics are ranked relative to the other applications in the suite. Adapted from Minh et al.~\cite{minh2008stamp}}
+\end{table}
+
+%TODO:
+%- talk about re-implementing in Rust and how this changed things here or there
+%- talk about how we removed any optimizations (such as writing your own hashmap that performs better) from the stm implementation since we wrote the applications in a Rust-native way for Ohua as well
+%- using both tables we decided which benchmarks we wanted to reimplement (which will each be explained in a short section
+%- explain why i chose bench xy
+%- explain benches
+
+
+
+
+
+
 
 
 % - Part 1: Benchmark Choice
