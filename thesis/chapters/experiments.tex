@@ -89,10 +89,17 @@ For each example application, the authors also provided at least three different
 %  - detail for labyrinth (etc) why they are so hard to parallelise
 
 \subsection{Labyrinth Path Mapping}
+The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
+Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
+Based of their algorithm description, we implemented the benchmark, as it has been described in chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
+\todo{complete this: Ohua-Impl -> was ist parallel?, original perf \& expected perf}
 
 \subsection{Intruder Detection}
 
 \subsection{Genome Sequencing}
+This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
+Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
+
 
 \subsection{K-means Clustering}
 
