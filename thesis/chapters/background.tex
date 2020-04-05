@@ -4,13 +4,56 @@
 \label{sec:background}
 
 In this chapter, we are going to introduce the term \emph{Irregular Application}, the concept of \emph{Amorphous Data Parallelism} as well as the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
+We will also briefly discuss the difficulties that arise when reasining about said application types and motivate, why further research into this topic could prove valuable.
+
+\section{Software Transactional Memory}
+
+With the invention of multi-threaded programming, a need for synchronization primitives arose to allow safe parallelization of data-processing applications.
+Usually, locks have been used by developers to guard access to pieces of shared data.
+
+Lock-based programming however, has the fundamental drawback of being blocking, meaning that developers have to employ great care when using them in order to not accidentally produce a deadlock (i.e., a state where a number of threads may never again progress) by acquiring locks in the wrong order.
+This means a lack of composability, as combining several small lock-based modules into a larger program would require the imposition of some sort of ordering on the locks, which frequently leads to problems.
+Even when written correctly, lock-based programs tend to quickly become hard to read and maintain due to the many rules that need to be enforced by the programmer herself without any external checks.
+
+% TODO: figure + ex. code
+%\begin{figure}[b]
+    %\includegraphics[]{}
+    %\caption{}
+    %\label{fig:background:stm}
+%\end{figure}
+
+Hence, Shavit et al. \cite{shavit1997software} proposed a concept called \emph{Software Transactional Memory}.
+This new approach to synchronization aimed to provide lock-free parallelism abstractions that allow multiple threads access to a shared variable without any form of blocking.
+Former critical sections are now regarded as \emph{transactions}: They are either executed in their entirety with all their changes taking effect or are not executed at all, just like transactions in databases.
+STM's operating principle is outlined in Figure \ref{fig:background:stm} along with a code example.
+Every read and write operation to or from a piece of shared data is conducted inside a transaction block and gets initially saved to a local transaction log.
+When the transaction block comes to an end, the changes made to individual shared data sections are committed.
+Therefore, the changes in the log are applied to the original shared values.
+In case another transaction managed to commit in the meantime to a value our transaction also touched, the conflict is detected and instead of committing the changes the transaction is aborted and restarted.
+This is normally done until the transaction committed successfully.
+
+In our example in Fig. \ref{fig:background:stm}, the transactions 1 and 2 both read the same value and modify it.
+But since the first transaction was able to commit earlier, the second transaction now stands in conflict and has to be aborted and scheduled for re-execution.
+
+As the example already shows, a fundamental benefit of the (Software) Transactional Memory model is its serializability \cite{swalens2016transactional}:
+All transactions seem to execute serially, since the steps of one transaction never appear to be interleaved with the steps of another transaction.
+Therefore, the results of an execution must be equal to the result of a serial execution.
+This has been formalized by Swalens et al. \cite{swalens2016transactional} in their proposed operational semantics for a language with transactions.
+
+Overall, STM takes an optimistic approach to parallelism, because it simply executed numerous computations without any heuristics or reasoning in parallel, hoping for as few conflicts as possible.
+The result of this is an underlying non-determinism that ensues everytime transactions are employed in a multi-threaded environment.
+Problems in this strategy become apparent when applied to high-contention scenarios.
+Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
+Further shortcomings of this concept have been discussed in detail by Caşcaval et al. \cite{cascaval2008software}.
+One the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics\todo{Was that what they meant?}.
+On the other hand, I/O operations cannot be transactionalized, as well as anything else that producs side effects outside of te transactions scope as these effects may not be rolled back on error.
+Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes certain situations nearly irreproducable.
 
 \section{Irregular Applications}
 
 \subsection{Amorphous Data Parallelism}
 
 
-\section{Software Transactional Memory}
 
 
 \section{Ohua}
