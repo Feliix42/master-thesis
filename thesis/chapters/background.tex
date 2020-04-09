@@ -4,9 +4,10 @@
 \label{sec:background}
 
 In this chapter, we are going to introduce the term \emph{Irregular Application}, the concept of \emph{Amorphous Data Parallelism} as well as the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
-We will also briefly discuss the difficulties that arise when reasining about said application types and motivate, why further research into this topic could prove valuable.
+We will also briefly discuss the difficulties that arise when reasoning about said application types and motivate, why further research into this topic could prove valuable.
 
 \section{Software Transactional Memory}
+\label{sec:background:stm}
 
 With the invention of multi-threaded programming, a need for synchronization primitives arose to allow safe parallelization of data-processing applications.
 Usually, locks have been used by developers to guard access to pieces of shared data.
@@ -61,16 +62,17 @@ All transactions seem to execute serially, since the steps of one transaction ne
 Therefore, the results of an execution must be equal to the result of a serial execution.
 This has been formalized by Swalens et al.~\cite{swalens2016transactional} in their proposed operational semantics for a language with transactions.
 
-Overall, STM takes an optimistic approach to parallelism, because it simply executed numerous computations without any heuristics or reasoning in parallel, hoping for as few conflicts as possible.
+Overall, STM takes an optimistic approach to parallelism, because it simply executes numerous computations without any heuristics or reasoning in parallel, hoping for as few conflicts as possible.
 The result of this is an underlying non-determinism that ensues everytime transactions are employed in a multi-threaded environment.
 Problems in this strategy become apparent when applied to high-contention scenarios.
 Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
 Further shortcomings of this concept have been discussed in detail by Caşcaval et al.~\cite{cascaval2008software}.
 One the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics\todo{Was that what they meant?}.
-On the other hand, I/O operations cannot be transactionalized, as well as anything else that producs side effects outside of te transactions scope as these effects may not be rolled back on error.
+On the other hand, I/O operations cannot be transactionalized, as well as anything else that produces side effects outside of the transactions' scope as these effects may not be rolled back on error.
 Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes certain situations nearly irreproducable.
 
 \section{Irregular Applications}
+\label{sec:background:irregular}
 
 In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
 There are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
@@ -103,6 +105,7 @@ This is because, as we have shown, the heavy use of pointers in the program hind
 
 
 \subsection{Amorphous Data Parallelism}
+\label{sec:background:irregular:adp}
 
 Pingali et al.~\cite{pingali2009amorphous} argue, that most irregular applications additionally exhibit a behavior referred to as \emph{amorphous data parallelism}:
 
@@ -119,8 +122,80 @@ While irregular applications are hard to readon about due to their pointer usage
 But as we will show in chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications.
 
 
-
 \section{Ohua}
+\label{sec:background:ohua}
+
+As we have seen before, most frameworks for parallel programming offer developers certain abstractions or data structures such as threads, locks or transactions for them to use when developing parallel programs.
+This however, forces programmers to think within the boundaries of their chosen tools and produces code that is tailored to a specific framework and therefore hard to migrate.
+
+A completely different approach has been taken by Ertel et al.~\cite{ertel2019dis} with the proposition of \emph{Ohua}, which is a framework that allows the development of implicitly parallel programs.
+It consists of three main components, as outlined in Fig.~\ref{fig:background:ohua}:
+\emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that interprets the algorithm and produces a parallelized version of it and a \emph{runtime} that will execute the parallel code.
+
+\begin{figure}[h]
+    %\includegraphics[width=\textwidth,keepaspectratio]{}
+    \missingfigure{Add Ohua Compiler flow}
+    \caption{Overview of the Ohua compiler and its components}%
+    \label{fig:background:ohua}
+\end{figure}
+
+An Ohua algorithm is what might come closest to the abstractions and tools used by other paradigms.
+It describes the part of a program that should be turned into a parallelized runtime.
+In early versions~\cite{ertel2015ohua} these algorithms were written in separate files using a high-level language that closely resembled Lisp and OCaml.
+Over time, a Rust-like syntax~\cite{adam2019master} had also been added to allow for more imperative algorithm definitions.
+By now, algorithms are not separately defined anymore and instead are functions that are written in a host language which is suppored by Ohua, such as Rust and Go.
+\todo{detail caveats: are there restrictions?}
+Ohua comes with a standalone compiler called \rust{ohuac}, which proceeds to parse the algorithm and transforms it eventually into an optimized dataflow graph.
+These optimizations stem from a number of transformations that are applied to the dataflow graph to uncover more parallelism opportunities.
+A host language specific backend will then generate the runtime code based on the DFG.
+This runtime executes as regular part of the program it is embedded in when the algorithm is called.
+As such, it may import and use any function from the host code, allowing the developers seamless integration of their existing code into the new parallel algorithm.
+
+Ohua derives parallelism from executing independent nodes of the dataflow graph in parallel (task-level parallelism) and running multiple invocations of dependent nodes in a pipeline-parallel fashion.
+In order to rule out most of the common pitfalls in parallel programming, the use of shared state is forbidden in Ohua.
+Instead, data must be transferred explicitly by using arguments and function return values.\todo{what degree of enforcement is there on these rules?}
+This also rules out mutable global values which often represent state in programs.
+To still allow the convenient declaration of stateful algorithms, Ohua uses the concept of so-called \emph{stateful functions}~\cite{ertel2019stclang}.
+A stateful function is a host function that is associated with state values which it is allowed to modify.
+Ohua encapsulates this operation and the associated state to ensure it is not leaked or used in a shared fashion.
+
+\begin{figure}[h]
+    \begin{subfigure}[h]{.5\textwidth}
+        \begin{minted}{Rust}
+            let buffer = Buffer::new();
+            let _ = for word in ["hello", "world", "!"] {
+                buffer.append(word);
+            };
+            buffer.get_message();
+        \end{minted}
+        \caption{Algorithm declaration in Rust}
+        \label{fig:backend:smap:algo}
+    \end{subfigure}
+    \begin{subfigure}[h]{.5\textwidth}
+        \missingfigure{Add DFG}
+        \caption{The algorithm's dataflow graph. Dependencies in the control flow are dotted.}
+        \label{fig:backend:smap:dfg}
+    \end{subfigure}
+    \caption{Example of an Ohua algorithm using the \rust{smap} primitive.}%
+    \label{fig:background:smap}
+\end{figure}
+
+Ertel et al. additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang}.
+An example algorithm in Rust that outlines this is shown in Fig.~\ref{fig:background:smap}.
+Functions highlighted in red are builtin functions of the Ohua runtime, all other nodes are host functions provided by the developer.
+In our example, the \rust{smap} primitive is represented by the for loop and its use of the \rust{buffer} variable in the body.
+The loop body is applied to a sequence of items, just as it would happen in a normal \rust{map} statement.
+But additionally, \rust{smap} ensures that changes made to the encapsulated state persist, as they would in a normal \rust{for} loop.
+This allows the use of pipeline parallelism for longer loop bodies and -- if no state is used in the loop at all -- the use of data parallelism.
+So in Fig.~\ref{fig:background:smap}, the newly initialized buffer is bound to the \rust{append} function, which is called like a method on the state repeatedly for the individual loop iterations.
+Any results which would be produced by this loop, are then collected and upon completion of the loop passed on to the next node in the dataflow graph.
+In the small code snippet provided, an iteration simply produces a \rust{()} literal\footnote{The \rust{()} type is called Unit literal in Rust. It is the result of a computation that returns nothing and can be compared to the \rust{void} type in C.} and hence the loop result itself is discarded.
+What remains, is the side effect of state alteration that occured during the loop processing.
+After the loop completes, the next function is executed.
+To avoid \rust{get\_message} being called too early, a control flow dependency is added to the (otherwise useless) \rust{collect} function.
+
+The result of Ohua's programming model is \emph{deterministic parallelism}, as opposed to Software Transactional Memory which aimed to improve execution times by scheduling possibly conflicting operations for parallel execution, completely forfeiting any determinism in the process.
+\todo{round this up - general flow of the thesis/chapter -> what's next?}
 
 
 
