@@ -133,8 +133,7 @@ It consists of three main components, as outlined in Fig.~\ref{fig:background:oh
 \emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that interprets the algorithm and produces a parallelized version of it and a \emph{runtime} that will execute the parallel code.
 
 \begin{figure}[h]
-    %\includegraphics[width=\textwidth,keepaspectratio]{}
-    \missingfigure{Add Ohua Compiler flow}
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/background-ohua}
     \caption{Overview of the Ohua compiler and its components}%
     \label{fig:background:ohua}
 \end{figure}
@@ -162,9 +161,10 @@ Ohua encapsulates this operation and the associated state to ensure it is not le
 \begin{figure}[h]
     \begin{subfigure}[h]{.5\textwidth}
         \begin{minted}{Rust}
+            let words = vec!["a", "test"];
             let buffer = Buffer::new();
-            let _ = for word in ["hello", "world", "!"] {
-                buffer.append(word);
+            let _ = for w in words {
+                buffer.append(w);
             };
             buffer.get_message();
         \end{minted}
@@ -180,7 +180,7 @@ Ohua encapsulates this operation and the associated state to ensure it is not le
     \label{fig:background:smap}
 \end{figure}
 
-Ertel et al. additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang}.
+Ertel et al.\ additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang}.
 An example algorithm in Rust that outlines this is shown in Fig.~\ref{fig:background:smap}.
 Functions highlighted in red are builtin functions of the Ohua runtime, all other nodes are host functions provided by the developer.
 In our example, the \rust{smap} primitive is represented by the for loop and its use of the \rust{buffer} variable in the body.
@@ -192,11 +192,17 @@ Any results which would be produced by this loop, are then collected and upon co
 In the small code snippet provided, an iteration simply produces a \rust{()} literal\footnote{The \rust{()} type is called Unit literal in Rust. It is the result of a computation that returns nothing and can be compared to the \rust{void} type in C.} and hence the loop result itself is discarded.
 What remains, is the side effect of state alteration that occured during the loop processing.
 After the loop completes, the next function is executed.
-To avoid \rust{get\_message} being called too early, a control flow dependency is added to the (otherwise useless) \rust{collect} function.
+To avoid \rust{get_message} being called too early, a control flow dependency is added to the (otherwise useless) \rust{collect} function.
 
-The result of Ohua's programming model is \emph{deterministic parallelism}, as opposed to Software Transactional Memory which aimed to improve execution times by scheduling possibly conflicting operations for parallel execution, completely forfeiting any determinism in the process.
-\todo{round this up - general flow of the thesis/chapter -> what's next?}
+The result of Ohua's programming model is \emph{deterministic parallelism}, as opposed to Software Transactional Memory which aims to improve execution times by scheduling possibly conflicting operations for parallel execution, completely forfeiting any determinism in the process.
+Another advantage is the way in which Ohua is integrated into existing code bases.
+In its current version, algorithms are defined as normal functions within the code, allowing developers to first test their implementations without any parallelism before compiling them with Ohua.
+This offers the advantage of producing mostly\todo{remove "mostly" when adding no caveats above} framework agnostic code which can be easily reused in other applications as well.
+\todo{talk about guarantees compared to stm?}
 
+Challenging however, is the ban the framework places on the use of shared state.
+As discussed in chapter~\ref{sec:background:irregular}, many applications encountered in the real world are irregular and hence rely on the use of pointers and shared, global state.
+Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs.
 
 
 % - present both Ohua and STM

@@ -3,7 +3,7 @@
 % **************************************************
 \documentclass[%
     paper=A4,               % paper size --> A4 is default in Germany
-    twoside=true,           % onesite or twoside printing
+    twoside=false,           % onesite or twoside printing
     openright,              % doublepage cleaning ends up right side
     parskip=half,           % spacing value / method for paragraphs
     chapterprefix=true,     % prefix for chapter marks
@@ -22,6 +22,8 @@
 % Setup thesis document
 % **************************************************
 \input{thesis-setup}
+
+\renewcommand{\baselinestretch}{1.0}
 
 
 % **************************************************
@@ -54,6 +56,8 @@
 \pagestyle{empty}				% no header or footers
 \input{chapters/titlepages}		% INCLUDE: all titlepages
 \cleardoublepage
+
+% TODO: Add task description somewhere!
 
 % TODO: Add abstract
 % \pagestyle{plain}				% display just page numbers

@@ -8,6 +8,7 @@ In this chapter, we will categorize the benchmarks introduced by the authors and
 Additionally, we will discuss the values measured during execution of the benchmarks and their relevance for the evaluation.
 
 \section{Benchmark Choice}
+\label{sec:experiments:choice}
 
 \todo{Maybe mention irregular applications/amorphous data parallelism?}
 After presenting our transformations for Ohua in chapter~\ref{sec:transformations}, we now wanted to compare its performance against STM in order to evaluate if Ohua could indeed be used as a suitable replacement for developing parallel irregular applications.
@@ -89,28 +90,33 @@ For each example application, the authors also provided at least three different
 %  - detail for labyrinth (etc) why they are so hard to parallelise
 
 \subsection{Labyrinth Path Mapping}
-The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
-Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
-Based of their algorithm description, we implemented the benchmark, as it has been described in chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
-\todo{complete this: Ohua-Impl -> was ist parallel?, original perf \& expected perf}
+\label{sec:experiments:labyrinth}
+%The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
+%Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
+%Based of their algorithm description, we implemented the benchmark, as it has been described in chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
+%\todo{complete this: Ohua-Impl -> was ist parallel?, original perf \& expected perf}
 
 \subsection{Intruder Detection}
+\label{sec:experiments:intruder}
 
 \subsection{Genome Sequencing}
-This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
-Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
+\label{sec:experiments:genome}
+%This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
+%Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
 
-The first step in the algorithm is to deduplicate the DNA segments that have been provided as inputs, since there are usually many duplications.
-The second phase is then concerned with finding neighboring segments in the remaining pool of DNA parts by utilizing overlap matching.
-By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.\todo{Visualize this!}
-After this phase has finished, all but two segments have a predecessor and successor assigned.
-Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
+%The first step in the algorithm is to deduplicate the DNA segments that have been provided as inputs, since there are usually many duplications.
+%The second phase is then concerned with finding neighboring segments in the remaining pool of DNA parts by utilizing overlap matching.
+%By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.\todo{Visualize this!}
+%After this phase has finished, all but two segments have a predecessor and successor assigned.
+%Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
 
-In STM, the deduplication phase as well as the matching phase are implemented in parallel.
+%In STM, the deduplication phase as well as the matching phase are implemented in parallel.
+
 % As was the case in the \emph{intruder} benchmark, Minh et al.\ used their own, transaction-ready 
 % Effectively, phase two of the algorithm boils down to the construction of a linked list from a set of elements.
 
 \subsection{K-means Clustering}
+\label{sec:experiments:kmeans}
 
 
 
@@ -123,6 +129,7 @@ In STM, the deduplication phase as well as the matching phase are implemented in
 %   - Give short overview over the used benchmarks
 
 % \section{Measured Values}
+% \label{sec:experiments:measurements}
 % - Part 2: relevant data points: What did we measure? What does it say about performance?
 %   - execution time
 %   - CPU time (as substitute for power consumption)
