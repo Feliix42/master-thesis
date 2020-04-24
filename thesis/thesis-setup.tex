@@ -83,9 +83,11 @@
 \usepackage{subcaption}
 
 % minted
-\usepackage{minted}
-\setminted{autogobble=true, linenos=true}
+\usepackage[chapter]{minted}
+\setminted{autogobble=true, linenos=true, breaklines=true}
 \usemintedstyle{friendly}
+
+\renewcommand{\listoflistingscaption}{\textbf{List of Listings}}
 
 
 
