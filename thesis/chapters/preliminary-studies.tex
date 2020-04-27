@@ -179,6 +179,23 @@ Introducing a rudimentary form of data parallelism helped not only to obtain mul
 It now also exhibits a performance growth behavior that can roughly be described as logistic, though it only manages to achieve half as much speedup as STM.
 Upon investigating this performance gap we determined two fundamental problems resulting from our current algorithm: Retries and Stragglers.
 
+%\begin{figure}[h]
+    %\centering
+    %\begin{minipage}{.5\textwidth}
+        %\centering
+        %\includegraphics[width=.95\linewidth,keepaspectratio]{gfx/preliminaries-labyrinth/split_128x128x5}
+        %\captionof{figure}{Measured speedup for an Ohua implementation using worklist splits.}%
+        %\label{fig:preliminaries:split-results}
+        %\vfill
+    %\end{minipage}%
+    %\begin{minipage}{.5\textwidth}
+        %\centering
+        %\includegraphics[width=.95\linewidth,keepaspectratio]{gfx/preliminaries-labyrinth/preliminaries-straggler}
+        %\captionof{figure}{Visualization of the straggler problem. Thread 3 takes the longest to finish its assigned work set, forcing the others to idle.}
+        %\label{fig:preliminaries:stragglers}
+    %\end{minipage}
+%\end{figure}
+
 \begin{figure}[h]
     \centering
     \includegraphics[width=.5\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/split_128x128x5}
@@ -204,7 +221,7 @@ On the contrary, the tasks in these worklists are often wildly heterogeneous, ea
 This is also the case in the labyrinth benchmark.
 The processing time for a single path depends solely on the number of nodes the path finder has to inspect which is related to the distance between the starting coordinates and the target.
 As result, the $n$ threads of our algorithm each take differently long to process their worklist, which means that all threads finishing their work earlier have to wait at the synchronization point for all slower threads to finish.
-This forced slack time is also present in the STM algorithm implementation, yet not as severe as in the Ohua implementation, since it synchronizes all threads only once when terminating them, while Ohua's threads synchronize once per recursion step.\todo{Maybe add a straggler graph?!}
+This forced slack time is also present in the STM algorithm implementation, yet not as severe as in the Ohua implementation, since it synchronizes all threads only once when terminating them, while Ohua's threads synchronize once per recursion step.
 
 
 \section{Lowering the Retry Count}
@@ -263,6 +280,22 @@ Each item consists of an isolated stream of instructions that is executed, possi
 Work items are unordered and may be processed in any order and in parallel.
 Should a processor run out of work, it can \enquote{steal} work items from other queues to avoid idle time.
 This concept has also been implemented in software, usually providing a runtime consisting of a thread pool, a scheduler and a set of tasks.
+Fig.~\ref{fig:preliminary:straggler} sketches how this approach could reduce the slack time for all threads in a system by stealing work from the longest-running thread.
+By reducing the time all threads spend idling, the overall execution time and efficiency improve.
+
+\begin{figure}[h]
+    \begin{subfigure}[t]{.45\textwidth}
+        \centering
+        \includegraphics[width=.85\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/preliminaries-straggler}
+    \end{subfigure}%
+    \hfill
+    \begin{subfigure}[t]{.45\textwidth}
+        \centering
+        \includegraphics[width=.85\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/preliminaries-work-stealing}
+    \end{subfigure}%
+    \caption{Illustration of the straggler problem and how work-stealing scheduling can significantly reduce this problem. In the second illustration, the slack time is almost completely removed by threads 1 and 2 stealing work from thread 3.}%
+    \label{fig:preliminary:straggler}
+\end{figure}
 
 To mitigate our straggler problem, we decided to move all data-parallel processing to a work stealing runtime.
 Rust's ecosystem offers multiple well-matured runtimes for this purpose.
@@ -301,72 +334,23 @@ After collecting the results from the runtime (line 12), the algorithm will proc
     \label{fig:preliminaries:ohua4}
 \end{listing}
 
-In employing this runtime, we hoped to reduce the slack time seen in our first parallel implementation by moving work away from the longer-running threads to faster ones.
-Figure~\ref{fig:preliminaries:future-results} confirms this.
-
-\begin{figure}[t]
+\begin{figure}[b]
     \centering
     \includegraphics[width=.5\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/current-128x128x5}
     \caption{Measured speedup for an Ohua implementation using worklist splits, an update frequency of $2 \cdot threadcount$ and a work-stealing runtime.}%
     \label{fig:preliminaries:future-results}
 \end{figure}
 
+In employing this runtime, we hoped to reduce the slack time seen in our first parallel implementation by moving work away from the longer-running threads to ones that finished quicker.
+Figure~\ref{fig:preliminaries:future-results} confirms this.
+Ohua now manages to achieve a threefold speedup compared to a sequential implementation of the benchmark, closing in on STMs performance.
+It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.\todo{calculate standard deviation?}
+The higher variance in STMs results is mainly due to the non-deterministic execution model, leading to a varying commit order for the mapped paths with each execution.
+This influences, which paths can be mapped successfully in a single run and how many write conflicts occur during execution which in turn has a direct effect on the predictability of the execution time.
+Ohua on the other hand is more deterministic.
+All paths are mapped in parallel, but they are merged in the same order they were in before being processed, yielding reproducible results that can be easily debugged and do not underlie a similarly high deviation.
+Due to the scattering of STMs results, one can not with definitive certainty say whether it indeed outperforms Ohua for every thread count value as the variances sometimes overlap, e.g., for 11, 13 and 15 threads.
 
-
-% - present our first look into the problem that was intended to show how fit or unfit Ohua was
-% - explain that we looked into "labyrinth" and show our performance
-% - detail the research we did on this and what our ideas were that we explored
-%   - explain how we formulated 3 optimizations to tackle the problem but don't explain them all that general but more focused on the issue at hand
-%   - show effect that the optimizations had
-% - show end result which validated our assumption that this could work
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+All in all, these preliminary studies showed that in irregular applications, Ohua can achieve performances similar to Software Transactional Memory if the right transformations are applied to the algorithm.
+This warrants further investigation by trying to find generalized dataflow graph transformations which can be applied to Ohua algorithms in order to boost their performance at runtime.
 
