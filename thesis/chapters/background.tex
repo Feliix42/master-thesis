@@ -3,7 +3,8 @@
 \chapter{Background and Motivation}%
 \label{sec:background}
 
-In this chapter, we are going to introduce the term \emph{Irregular Application}, the concept of \emph{Amorphous Data Parallelism} as well as the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
+In this chapter, we are going to introduce the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
+To better understand how one can make a well-founded comparison between both concepts, we will also introduce the class of \emph{Irregular Applications} as well as the term \emph{Amorphous Data Parallelism}.
 We will also briefly discuss the difficulties that arise when reasoning about said application types and motivate, why further research into this topic could prove valuable.
 
 \section{Software Transactional Memory}
@@ -12,9 +13,13 @@ We will also briefly discuss the difficulties that arise when reasoning about sa
 With the invention of multi-threaded programming, a need for synchronization primitives arose to allow safe parallelization of data-processing applications.
 Usually, locks have been used by developers to guard access to pieces of shared data.
 
-Lock-based programming however, has the fundamental drawback of being blocking, meaning that developers have to employ great care when using them in order to not accidentally produce a deadlock (i.e., a state where a number of threads may never again progress) by acquiring locks in the wrong order.
-This means a lack of composability, as combining several small lock-based modules into a larger program would require the imposition of some sort of ordering on the locks, which frequently leads to problems.
+Lock-based programming however, has the fundamental drawback of easily producing deadlocks (i.e., a state where a number of threads may never again progress) when acquiring locks in the wrong order, forcing developers to employ great care when using them.
+This results in a lack of composability, as combining several small lock-based modules into a larger program would require the imposition of some sort of ordering on the locks, which frequently leads to problems.
 Even when written correctly, lock-based programs tend to quickly become hard to read and maintain due to the many rules that need to be enforced by the programmer herself without any external checks.
+Another problem is lock contention.
+If a lock is currently taken, all other threads seeking to acquire it have to wait.
+This opens up a new set of problems as frequent waiting leads to prolonged execution times and waiting threads can starve, should the thread fail to release the lock for any reason.
+Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, the resulting higher chance of an accidental deadlock and high contention.
 
 \begin{figure}[h]
     \begin{subfigure}[h]{\textwidth}
@@ -46,7 +51,7 @@ Even when written correctly, lock-based programs tend to quickly become hard to 
 
 Hence, Shavit et al.~\cite{shavit1997software} proposed a concept called \emph{Software Transactional Memory}.
 This new approach to synchronization aimed to provide lock-free parallelism abstractions that allow multiple threads access to a shared variable without any form of blocking.
-Former critical sections are now regarded as \emph{transactions}: They are either executed in their entirety with all their changes taking effect or are not executed at all, just like transactions in databases.
+Former critical sections are now regarded as \emph{transactions}: They are either executed in their entirety with all their changes taking effect simultaneously or are not executed at all, just like transactions in databases.
 STM's operating principle is outlined in Figure~\ref{fig:background:stm} along with a code example in Fig.~\ref{fig:background:stmcode}.
 Every read and write operation to or from a piece of shared data is conducted inside a transaction block and gets initially saved to a local transaction log.
 When the transaction block comes to an end, the changes made to individual shared data sections are committed.
@@ -67,59 +72,9 @@ The result of this is an underlying non-determinism that ensues everytime transa
 Problems in this strategy become apparent when applied to high-contention scenarios.
 Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
 Further shortcomings of this concept have been discussed in detail by Caşcaval et al.~\cite{cascaval2008software}.
-One the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics\todo{Was that what they meant?}.
+One the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics.
 On the other hand, I/O operations cannot be transactionalized, as well as anything else that produces side effects outside of the transactions' scope as these effects may not be rolled back on error.
-Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes certain situations nearly irreproducable.
-
-\section{Irregular Applications}
-\label{sec:background:irregular}
-
-In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
-There are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
-As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.
-
-When looking at \emph{irregular applications} on the other hand, the situation is completely different.
-The term describes applications, whose structure resolves around the manipulation of large, pointer-based data structures like graphs and trees.
-Due to this structural peculiarity, compiler analyses struggle to uncover any meaningful insights into the algorithm that would allow to exploit any parallelism hidden in it.
-
-\begin{figure}[b]
-    \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-irregular}
-    \caption{Graph representation of an irregular application with active elements and their neighborhoods. Adapted from Kulkarni et al.~\cite{kulkarni2009much}}%
-    \label{fig:background:irregular}
-\end{figure}
-
-To better outline this, Kulkarni et al.~\cite{kulkarni2009much} developed an abstract representation for irregular programs using a set of nodes and edges, as shown in Fig.~\ref{fig:background:irregular}.
-The nodes and edges represent the input data and their relationships.
-During the execution of an irregular algorithm, the program may perform computations on a (sub-)set of active nodes or edges, the work items.
-In Figure~\ref{fig:background:irregular}, these are highlighted in red.
-Performing said executions may involve reading from or writing to other nodes or edges in the graph, which form an active elements' neighborhood, shaded in blue.
-Which elements of the graph make up the neighborhood of an active element is not known beforehand and may encompass all direct neighbors in the graph (as seen for nodes $n_2$ and $n_3$), maybe only a single neighboring element (as seen for node $n_4$) or transitively the neighboring elements of its direct neighbors.
-
-Usually, work items are not ordered and may be processed in any order.
-But processing one element may generate an arbitrary number of new active elements or remove others from the pool, depending on the algorithm.
-Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
-
-Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
-And because static parallelization as well as lock-based approaches fail\todo{isn't that too harsh for locking?} to uncover any parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
-This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semanticsof STM allow for a simple and efficient parallelization in most cases.
-
-
-\subsection{Amorphous Data Parallelism}
-\label{sec:background:irregular:adp}
-
-Pingali et al.~\cite{pingali2009amorphous} argue, that most irregular applications additionally exhibit a behavior referred to as \emph{amorphous data parallelism}:
-
-Given a set of active nodes and an ordering on them, amorphous data parallelism is the parallelism that arises from simultaneously processing active nodes and is subject to neighborhood and ordering constraints.
-It is a generalization of standard data parallelism in which
-\begin{enumerate}
-    \item concurrent operations may conflict with each other
-    \item activities can be created dynamically
-    \item activities may modify the underlying data structure
-\end{enumerate}
-These characteristics have already been briefly discussed in connection with Fig.~\ref{fig:background:irregular}.
-
-While irregular applications are hard to readon about due to their pointer usage, they are still a very interesting research topic, made more difficult by amorphous data parallelism.
-But as we will show in chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications.
+Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes a specific situation nearly irreproducable.
 
 
 \section{Ohua}
@@ -142,7 +97,7 @@ An Ohua algorithm is what might come closest to the abstractions and tools used 
 It describes the part of a program that should be turned into a parallelized runtime.
 In early versions~\cite{ertel2015ohua} these algorithms were written in separate files using a high-level language that closely resembled Lisp and OCaml.
 Over time, a Rust-like syntax~\cite{adam2019master} had also been added to allow for more imperative algorithm definitions.
-By now, algorithms are not separately defined anymore and instead are functions that are written in a host language which is suppored by Ohua, such as Rust and Go.
+By now, algorithms are not separately defined anymore and instead are functions that are written in a host language which is supported by Ohua, such as Rust and Go.
 \todo{detail caveats: are there restrictions?}
 Ohua comes with a standalone compiler called \rust{ohuac}, which proceeds to parse the algorithm and transforms it eventually into an optimized dataflow graph.
 These optimizations stem from a number of transformations that are applied to the dataflow graph to uncover more parallelism opportunities.
@@ -152,7 +107,7 @@ As such, it may import and use any function from the host code, allowing the dev
 
 Ohua derives parallelism from executing independent nodes of the dataflow graph in parallel (task-level parallelism) and running multiple invocations of dependent nodes in a pipeline-parallel fashion.
 In order to rule out most of the common pitfalls in parallel programming, the use of shared state is forbidden in Ohua.
-Instead, data must be transferred explicitly by using arguments and function return values.\todo{what degree of enforcement is there on these rules?}
+Instead, data must be transferred explicitly by using arguments and function return values.
 This also rules out mutable global values which often represent state in programs.
 To still allow the convenient declaration of stateful algorithms, Ohua uses the concept of so-called \emph{stateful functions}~\cite{ertel2019stclang}.
 A stateful function is a host function that is associated with state values which it is allowed to modify.
@@ -180,7 +135,7 @@ Ohua encapsulates this operation and the associated state to ensure it is not le
     \label{fig:background:smap}
 \end{figure}
 
-Ertel et al.\ additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang}.
+Ertel et al.\ additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang} and is based on the insight, that loop operations modifying shared state can be considered as fold operations on the state.
 An example algorithm in Rust that outlines this is shown in Fig.~\ref{fig:background:smap}.
 Functions highlighted in red are builtin functions of the Ohua runtime, all other nodes are host functions provided by the developer.
 In our example, the \rust{smap} primitive is represented by the for loop and its use of the \rust{buffer} variable in the body.
@@ -202,7 +157,64 @@ This offers the advantage of producing mostly\todo{remove "mostly" when adding n
 
 Challenging however, is the ban the framework places on the use of shared state.
 As discussed in chapter~\ref{sec:background:irregular}, many applications encountered in the real world are irregular and hence rely on the use of pointers and shared, global state.
-Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs.
+Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs, which the Software Transactional Memory framework caters towards.
+
+
+\section{Irregular Applications}
+\label{sec:background:irregular}
+
+Providing a comprehensive comparison between STM and Ohua requires a selection of representative applications to test both systems on.
+But to make such a selection, one first has to understand, which features describe a parallel application and how these properties may influence the parallel behavior as well as the viability of certain parallelism frameworks.
+In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
+There are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
+As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.
+
+When looking at \emph{irregular applications} on the other hand, the situation is completely different.
+The term describes applications, whose structure resolves around the manipulation of large, pointer-based data structures like graphs and trees.
+Due to this structural peculiarity, compiler analyses struggle to uncover any meaningful insights into the algorithm that would allow to exploit any parallelism hidden in it.
+
+\begin{figure}[b]
+    \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-irregular}
+    \caption{Graph representation of an irregular application with active elements and their neighborhoods. Adapted from Kulkarni et al.~\cite{kulkarni2009much}}%
+    \label{fig:background:irregular}
+\end{figure}
+
+To better outline this, Kulkarni et al.~\cite{kulkarni2009much} developed an abstract representation for irregular programs using a set of nodes and edges, as shown in Fig.~\ref{fig:background:irregular}.
+The nodes and edges represent the input data and their relationships.
+During the execution of an irregular algorithm, the program may perform computations on a (sub-)set of active nodes or edges, the work items.
+In Figure~\ref{fig:background:irregular}, these are highlighted in red.
+Performing said executions may involve reading from or writing to other nodes or edges in the graph, which form an active elements' neighborhood, shaded in blue.
+Which elements of the graph make up the neighborhood of an active element is not known beforehand and may encompass all direct neighbors in the graph (as seen for nodes $n_2$ and $n_3$), maybe only a single neighboring element (as seen for node $n_4$) or transitively the neighboring elements of its direct neighbors.
+
+Usually, work items are not ordered and may be processed in any order.
+But processing one element may generate an arbitrary number of new active elements or remove others from the pool, depending on the algorithm.
+Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
+
+Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
+And because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
+This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.\todo{Kommt hier gut genug raus, warum diese Section hier in der Arbeit steht? Also: Zusammenhang ADP/IA klar?}
+As of now, it is unclear whether Ohua could also be used to parallelize Irregular Applications, offering an alternative besides STM for this type of applications where most other frameworks fail.
+Since its approach relies heavily on compile-time analyses and optimizations, it may prove challenging to try to uncover good parallelism opportunities here.
+
+
+\subsection{Amorphous Data Parallelism}
+\label{sec:background:irregular:adp}
+
+Pingali et al.~\cite{pingali2009amorphous} argue, that most irregular applications additionally exhibit a behavior referred to as \emph{amorphous data parallelism}:
+
+Given a set of active nodes and an ordering on them, amorphous data parallelism is the parallelism that arises from simultaneously processing active nodes and is subject to neighborhood and ordering constraints.
+It is a generalization of standard data parallelism in which
+\begin{enumerate}
+    \item concurrent operations may conflict with each other
+    \item activities can be created dynamically
+    \item activities may modify the underlying data structure
+\end{enumerate}
+These characteristics have already been briefly discussed in connection with Fig.~\ref{fig:background:irregular}.
+
+While irregular applications are hard to reason about due to their pointer usage, they are still a very interesting research topic, made more difficult by amorphous data parallelism.
+But as we will show in chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications.
+
+
 
 
 % - present both Ohua and STM

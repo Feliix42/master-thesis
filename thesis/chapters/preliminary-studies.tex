@@ -9,6 +9,7 @@ Based on this initial study we then wanted to find ways to improve Ohua's perfor
 The aim of these preliminary studies was to find out, whether Ohua was usable for writing programs relying on shared state and if it could be a viable alternative to STM in this setting.
 
 \section{Labyrinth Benchmark}
+\label{sec:preliminary:labyrinth}
 
 As a first example application, we chose to implement the \emph{labyrinth} benchmark as presented by Swalens et al.~\cite{swalens2016transactional}.
 This algorithm is a variation of Lee's Algorithm~\cite{lee1961algorithm} which solves path-connection problems often encountered when searching for an optimal route or generating wiring diagrams where wires may not overlap.
@@ -259,13 +260,24 @@ Making use of the existing recursion semantics, it caps the number of elements t
 As before, all computations in a single step are conducted on the same state and updated all at once after finishing mapping the paths.
 Once the updates have been written to the maze or rejected due to a collision, the list of failed updates gets merged again with the rest of the worklist that has not been processed in this recursion step (line 14).
 Using this approach, the number of possibly denied state updates is dramatically reduced to only maximally $f - 1$ elements.
-This has the side effect of reducing the overall probability of a write conflict occurring with decreasing values for $f$.
+With decreasing values for $f$, the overall probability of a write conflict is also reduced.
+%This has the side effect of reducing the overall probability of a write conflict occurring with decreasing values for $f$.
 
-\todo{Discuss the results from this: Which frequencies are optimal? What measurements did I take? Graph?}
+\begin{figure}
+    \centering
+    \includegraphics[width=.5\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/freq-128x128x5}
+    \caption{Performance of various iterations of the Ohua-frequency algorithm.}%
+    \label{fig:preliminaries:frequencies}
+\end{figure}
+
 In addition to the number of worklist splits, this change introduced the \emph{frequency} $f$ as second parameter to the algorithm, which we wanted to fix to a specific value to find a middle ground between processing as many elements as possible and keeping the number of retries low.
 Small update frequencies imply fewer conflicts, but also more recursions and hence more negative side effects from stragglers.
 Choosing a too large value for $f$ on the other hand might improve the parallel performance but comes at the cost of more repeated calculations.
-We tested our implementation with varying update frequencies and determined that $f = 2 \cdot threadcount$ provided the best trade-off.
+We tested our implementation with varying update frequencies.
+The results are shown in Fig.~\ref{fig:preliminaries:frequencies}, which shows the performances for Ohua algorithms using a update frequency of 1, 2, 4, or 6 times the thread count, meaning that each thread will receive 1, 2, 4, or 6 work items.
+As the plot shows, it is better to keep the update frequency low, as we have speculated before.
+Best performance for larger thread counts is achieved by $f = threadcount$, although this run exhibited the worst speedup for smaller thread counts, probably due to the overhead we discussed as a potential limiting factor.
+Hence, we opted for using a frequency of $f = 2 \cdot threadcount$ as this configuration continuously shows an average to top performance in the pool of examined frequencies and we believe it provides the best trade-off between update conflicts and straggler performance penalties.
 \todo{Generalizability?}
 
 
