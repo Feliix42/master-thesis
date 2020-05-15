@@ -1,6 +1,69 @@
 % !TEX root = ../thesis.tex
 %
-% \chapter{Related Work}
-% \label{sec:related}
+\chapter{Related Work}
+\label{sec:related}
 
-% TODO: What qualifies as related work here??
+Before OHua, various other frameworks for parallel programming hahve been proposed that could serve as a replacement for \emph{Software Transactional Memory} to mitigate some of the shortcomings of the original proposal by Shavit et al.~\cite{shavit1997software}.
+This chapter will briefly present some of this related work.
+
+\section{Chocola: Combining multiple concurrency models}
+According to Van Roy et al.~\cite{van2004concepts}, most concurrency models can be grouped into three different categories: deterministic, message-passing and shared memory models.
+In a study, Swalens et al.~\cite{swalens2018chocola} found that developers often employ multiple concepts from different categories to solve their tasks.
+They regard this interleaving of multiple concepts as highly dangerous, as each concurrency model comes with its own set of restrictions on what may or may not be done in the program in order to uphold their individual guarantees.
+Mixing two or more models in an application may void some of these guarantees, a fact mose developers are not aware of, as the semantics of this nesting are usually not well-defined.
+For example, transactions (a shared-memory model) provide isolation\footnote{Isolation ensures, that one transaction can never see the changes made by another transaction until the latter has comitted. Various levels of isolation have been defined, but Swalens et al.~\cite{swalens2018chocola} were only interested in serializability.} as a guarantee.
+However, if futures (a deterministic model) are used inside of transactions, this guarantee is voided, unbeknownst to the developer.
+
+As a solution, and to account for this culture of mixing several concurrency models, the authors propose \emph{Chocola}~\cite{swalens2018chocola}, a unified framework of futures, transactions and actors (a message-passing model).
+Chocola is a fork of the Clojure programming language that comes with native support for all three concepts.
+Ih their work, Swalens et al. provide well-defined semantics for the combination of two concurrency models.
+When defining and implementing their language, they attempted to uphold as much of the original guarantees the individual models offered as possible when combining them, e.g., by altering how futures behave inside a transaction.
+For the most part they succeeded, although Determinancy was a guarantee they could often not retain.
+
+To evaluate their work the authors also re-implemented a subset of the STAMP benchmark suite using Chocola.
+However, they only tested 4 out of 8 benchmarks, as they argue that only the four selected ones offered any potential for enhancements by combining transactions with another concurrency model.
+Swalens et al. reported speedups of 2.3 for a Chocola-based labyrinth implementation, as compared to a speedup of 1.3 for a concentional STM implementation.
+Nevertheless, it remains unclear how the authors achieved these measurements, as this is not discussed in their work.
+Judging from their references to previous work~\cite{swalens2016transactional, swalens2017transactional}, these speedups may refer to a one-threaded run of the unchanged STM run instead of a sequential implementation.
+
+A significant advantage of this approach is, that it allows the combination of several different concurrency models while offering well-defined and fomralized semantics.
+This makes the development of complex software easier for developers as they do not have to put too much thought in the ramifications of this combination.
+On the other hand side is this offering of multiple concurrency models also the frameworks' hugest disadvantage.
+Developers now don't have to learn how to currectly use one, but three different concepts with different guarantees attached.
+Resulting code is so extremely tailored towards the use of these different concepts and their interaction between one another that migrating the code to another framework becomes virtually impossible, depending on how many of Chocola's features are used.
+Applications developed with this framework also contain many (potentially different) concurrency abstractions.
+In that regard, developing parallel programs might become easier, but understanding and reasoning about them becomes much harder, especially compared to Ohua, which does not expose any abstractions and shields the developer completely from having to reason about concurrency, as this is exploited at compile-time.\todo{Write more comparison?}
+
+\section{Software Lock Elision}
+Roy et al.~\cite{roy2009runtime} detail in their work the problems of migrating lock-based code to a Transactional Memory framework.
+If done incorrectly, the semantics of the code may change due to the different behavior of transactions compared to locks, leading to different results.
+Hence, they propose a Software Lock Elision runtime that builds upon lock-based code and allows threads to speculatively execute lock-based critical sections in parallel.
+This framework features an optimistic execution model and detects conflicts between accesses by concurrent threads dynamically.
+In this regard, it functions similar to Software Transactional Memory.
+But additionally, Software Lock Elision takes a best effort approach on its implementation:
+A fallback to acquiring locks without any speculation is possible, e.g., when the speculative state overflows the cache, when using nested locks or when performing an operation that only works non-speculatively (such as waiting for a condition variable).
+Roy et al. state that their system is only tailored towards workloads with high contention and a low number of conflicts, as only then using locks becomes a liability.\todo{Or: "too much overhead"?}
+
+\begin{figure}
+    \missingfigure[figwidth=7cm]{Adaption of the figure from the original paper}
+    \caption{The workflow of the Software Lock Elision runtime. Adapted from Roy et al.~\cite{roy2009runtime}.}%
+    \label{fig:related:sle}
+\end{figure}
+
+As can be seen in Fig.~\ref{fig:related:sle}, their design features both the automatic and the manual use of SLE.
+A developer may either annotate their lock-based code to explicitly use Software Lock Elision at certain points or profile the locks in their binary and apply binary rewriting systems to add a SLE runtime to the application\footnote{In their work, Roy et al. discuss the design for an automated SLE runtime but left an actual implementation to future work. As of today, no follow-up work detailing an actual implementation has been provided.}.
+The runtime is designed to retain maximal fairness towards non-speculative locks by prioritizing them over threads holding the same lock speculatively.
+The authors also tried to ensure the isolation between speculative and non-speculative work and to add support for application-specific lock types.
+
+To evaluate their work, Roy et al.\ implemented 6 out of 8 STAMP benchmarks\footnote{They reported 2 benchmarks, yada~\& bayes, to not run on their systems anymore.} usin manually-annotated SLE code.
+For the kmeans, intruder and ssca2 benchmarks the authors reported speedups significantly higher than those of the original STM implementation.\todo{grafik hier?}
+However, the SLE runtime failed to achieve good results for genome, labyrinth and vacation, sometimes only reaching 25-50~\% of the STM speedup.
+Interestingly, the framework only achieved good performances in benchmarks with short transactions and at most a medium amount of time spent in transactions, as can be seen in table~\ref{tab:experiments:categorization}.
+
+Overall, this type of automated approach to enhance lock-based code with speculation looks very promising.
+It allows the use of STM concepts within lock-based code, which enables developers to easily improve performance of their existing code.
+But this requires the use of lock-based code.
+The authors make the correct usage of locks a prerequisite in their work, although this is the hardest aspect of lock-based programming, as we discussed in chapter~\ref{sec:background:stm}.
+Therefore, an abstraction-free approach to concurrent programming, like Ohua, might be preferrable to avoid having developers write locking code manually.
+
+
