@@ -25,7 +25,33 @@ To evaluate their work the authors also re-implemented a subset of the STAMP ben
 However, they only tested 4 out of 8 benchmarks, as they argue that only the four selected ones offered any potential for enhancements by combining transactions with another concurrency model.
 Swalens et al.\ reported speedups of 2.3 for a Chocola-based labyrinth implementation, as compared to a speedup of 1.3 for a conventional STM implementation.
 Nevertheless, it remains unclear how the authors achieved these measurements, as this is not discussed in their work.
-Judging from their references to previous work~\cite{swalens2016transactional, swalens2017transactional}, these speedups may refer to a one-threaded run of the unchanged STM run instead of a sequential implementation.
+Judging from their references to previous work~\cite{swalens2016transactional, swalens2017transactional}, these speedups most likely refer to a single-threaded run of their STM implementation.
+But as McSherry et al.~\cite{mcsherry2015scalability} pointed out in their work, choosing the performance of another implementation as reference point gives no indication of the real performance of both approaches.
+In real application scenarios, parallelism is introduced to supercede an existing sequential implementation because the latter can usually only be optimized to a certain point before reaching its performance limit.
+When setting a single-threaded run of any framework as baseline, one can only make a speedup comparison between relative to other frameworks, leading to distorted speedups as can be seen in Fig.~\ref{fig:related:ohua-plots}.
+
+\begin{figure}[t]
+    \begin{subfigure}[t]{.48\textwidth}
+        \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth+}
+        \caption{Sequential baseline.}%
+        \label{fig:related:ohua-plots:orig}
+    \end{subfigure}
+    ~
+    \begin{subfigure}[t]{.48\textwidth}
+        \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth+_stm_base}
+        \caption{Single-threaded STM as baseline.}%
+        \label{fig:related:ohua-plots:stm}
+    \end{subfigure}
+    \caption{Speedups of Ohua and STM for the labyrinth benchmark with different baselines.}%
+    \label{fig:related:ohua-plots}
+\end{figure}
+
+Both plots show the results of the labyrinth+ benchmark as explained in chapter~\ref{sec:experiments:labyrinth} and evaluated in chapter~xy\todo{set reference to labyrinth results here}.
+Figure~\ref{fig:related:ohua-plots:orig} shows our original speedups, comparing both implementations to a seuential baseline implementation.
+Fig.~\ref{fig:related:ohua-plots:stm} on the other hand shows the same results but with the single-threaded STM run as baseline, nearly doubling the apparent speedups.
+Hence, to obtain realistic speedups and account for the potential overheads of various frameworks, it is favorable to compare against a sequential baseline.
+Swalens et al.\ probably decided against doing so as it would have required them to write a third, sequential version of their benchmarks.
+This demonstrates another strength of Ohua: Due to its implicit nature, any algorithm definition may simultaneously serve as sequential implementation by simply executing the application as-is, without invoking the Ohua compiler first.\todo{Kam in dem Paragraph gut genug raus, dass die Messwerte von den Autoren egal sind, weil komisch?}
 
 A significant advantage of this approach is, that it allows the combination of several different concurrency models while offering well-defined and formalized semantics.
 This makes the development of complex software easier for developers as they do not have to put too much thought in the ramifications of this combination.
@@ -33,7 +59,7 @@ On the other hand side is this offering of multiple concurrency models also the 
 Developers now don't have to learn how to correctly use one, but three different concepts with different guarantees attached.
 Resulting code is so extremely tailored towards the use of these different concepts and their interaction between one another that migrating the code to another framework becomes virtually impossible, depending on how many of Chocola's features are used.
 Applications developed with this framework also contain many (potentially different) concurrency abstractions.
-In that regard, developing parallel programs might become easier, but understanding and reasoning about them becomes much harder, especially compared to Ohua, which does not expose any abstractions and shields the developer completely from having to reason about concurrency, as this is exploited at compile-time.\todo{Write more comparison?}
+In that regard, developing parallel programs might become easier, but understanding and reasoning about them becomes much harder, especially compared to Ohua, which does not expose any abstractions and shields the developer completely from having to reason about concurrency, as this is exploited at compile-time.
 
 \section{Software Lock Elision}%
 \label{sec:related:sle}
@@ -47,7 +73,8 @@ A fallback to acquiring locks without any speculation is possible, e.g., when th
 Roy et al.\ state that their system is only tailored towards workloads with high contention and a low number of conflicts, as only then using locks becomes a liability.\todo{Or: "too much overhead"?}
 
 \begin{figure}
-    \missingfigure[figwidth=7cm]{Adaption of the figure from the original paper}
+    \centering
+    \includegraphics[width=.9\textwidth,keepaspectratio]{gfx/related/sle}
     \caption{The workflow of the Software Lock Elision runtime. Adapted from Roy et al.~\cite{roy2009runtime}.}%
     \label{fig:related:sle}
 \end{figure}
@@ -115,8 +142,9 @@ Like us, they opted for an automatic approach for their work, eliminating the ne
 Though, their motivation lies within the fact that most parallelization efforts target only a static, anticipated number of environments, outside which a programs performance may decrease drastically.
 Parcae was designed to circumvent that issue by allowing it to automatically tune the program dynamically to react to any changes in the environment at runtime.
 
-\begin{figure}[b]
-    \missingfigure[figwidth=7cm]{Adaption of the figure from the original Parcae paper}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=.6\textwidth,keepaspectratio]{gfx/related/parcae}
     \caption{Architecture and Workflow of the Parcae framework, adapted from~\cite{raman2012parcae}.}%
     \label{fig:related:parcae}
 \end{figure}
