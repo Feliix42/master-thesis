@@ -1,7 +1,80 @@
 % !TEX root = ../thesis.tex
 %
-% \chapter{Compiler Optimizations} % or: Transformations?
-% \label{sec:transformations}
+\chapter{Compiler Transformations}
+\label{sec:transformations}
+
+After discussing possible optimizations to the labyrinth algorithm in chapter~\ref{sec:preliminary}, we will now attempt to generalize the changes we made into transformations to be applied at compile time.
+The resulting transformations will be formally described and discussed in this chapter, using an Expression IR that is based on the lambda calculus.
+\todo{Maybe rewrite Introductory Passage}
+
+\section{Expression IR Definition}%
+\label{sec:transformations:expression-ir}
+
+\begin{figure}
+    \begin{tabular}{l c l r}
+        \multicolumn{4}{l}{\emph{Terms:}}\\
+        $t$ & $::=$ & $x$ & variable\\
+        & $|$ & $\lambda x.t$ & abstraction\\
+        & $|$ & $t\ t$ & application\\
+        & $|$ & \texttt{let} $x = t$ \texttt{in} $t$ & lexical scope (variable binding)\\
+        & $|$ & \texttt{if}$(t\ t\ t)$ & conditionals\\
+        & $|$ & \texttt{let} $f = \lambda x.t$ \texttt{in} & fixed-point combinator\\
+        & $|$ & $\texttt{ff}_f (x_1 \dots x_n)$ & apply the free foreign function $f$ to $x_1 \dots x_n$\\
+        &&& with $n \geq 0$.\\
+        & $|$ & $\texttt{sf}_f (s x_1 \dots x_n)$ & apply the state-modifying foreign function $f$\\
+        &&& to state $s$ and $x_1 \dots x_n$ with $n \geq 0$.\\\ \\
+    
+        \multicolumn{4}{l}{\emph{Values:}}\\
+        $v$ & $::=$ & $o \in V_\text{h}$ & value in host language\\
+        & $|$ & $\lambda x.t$ & abstraction\\
+        & $|$ & $[ v_1 \dots v_n ]$ & list of $n$ values\\\ \\ \
+    \end{tabular}
+    
+    \begin{tabular}{l c l}
+        \multicolumn{3}{l}{\emph{Predefined Functions:}}\\
+        \texttt{map}$(\lambda x.t\ [ v_1 \dots v_n ])$ & $\equiv$ & $[ (\lambda x.t)\ v_1\ \dots \ (\lambda x.t)\ v_n ]$\\
+        \texttt{nth}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $v_n$
+    \end{tabular}
+    \caption{Language definition of the Expression IR.}%
+    \label{fig:transformations:definition}
+\end{figure}
+
+During compilation, the Ohua compiler framework parses algorithms provided as inputs into an Expression IR on which it then runs a number of optimizations, as we have shown in Figure~\ref{fig:background:ohua} in chapter~\ref{sec:background:ohua}.
+We are going to describe our transformations in this intermediate representation, which we will therefore present now briefly.
+The Expression IR we use is based on the call-by-need lambda calculus~\cite{ariola1997lambda, ariola1995lambda} which prevents duplicated computations.\todo{Link io-paper here as we've used it there already?}
+Figure~\ref{fig:transformations:definition} defines our expression language, which is building atop the language used in previous research on Ohua optimizations~\cite{ertel2018compiling} by Ertel et al.
+The language defines the basic terms of the call-by-need lambda calculus for variables, abstractions, application and lexical scoping.
+We additionally define conditionals and fixed-point combinators to realize recursive expressions\todo{Elaborate on fixed-point combinator?} as well as free and state-modifying foreign functions.
+Using the combinator $\text{ff}_f$ one can express the application of a function $f$ which is not defined as part of the calculus to an arbitraty number of arguments.
+This allows us to integrate code written in other languages like Rust into the algorithm, which is a key premise for Ohua's concept as Embedded DSL.
+Furthermore, we expand the definitions used in previous work by adding the combinator $\text{sf}_f$, which applies a method $f$ to a state value $s$ and an arbitrary number of additional values.
+We made this addition in order to model the state manipulations usually found in shared state applications.
+Methods that are executed on a state value may alter it but are usually also allowed to return another value (e.g., when reading from a piece of state).
+This behavior is reflected in the \texttt{sf} combinator producing a list with two values as result, where the first value is the the altered state value and the second value is the ordinary value produced by the function $f$.
+
+In order to complete the includion of legacy code into the Expression IR, values may not only be abstractions or lists of values but also values in $V_\text{h}$, the value domain of the host language.
+Aside from recursion, we also define the well-known higher-order function \texttt{map} which applies a term to a list of values and the function \texttt{nth} to retrieve a particular element from a list of values.
+As a shorthand for writing more concise terms, we introduce a simple destructuring syntax which is defined as follows:\todo{make actual definitions?}
+\begin{center}
+    \begin{tabular}{l c l}
+        && \texttt{let} $x_{\text{result}} = \texttt{ff}_f() \texttt{ in}$\\
+        \texttt{let} $y\ z = \text{ff}_f() \texttt{ in}$ & $\equiv$ & \ \ \texttt{let} $y = \texttt{nth}(1\ x_{\text{res}}) \texttt{ in}$\\
+        && \ \ \ \ \texttt{let} $z = \texttt{nth}(2\ x_{\text{res}}) \texttt{ in}$\\
+    \end{tabular}
+\end{center}
+
+\begin{figure}
+    $\texttt{let } f = \lambda x y.$\\
+    \hspace*{.3cm}$\texttt{let } x_\text{paths} = \texttt{map} (\lambda z.\texttt{ff}_\text{find\_path} (x\ z)$\\
+    \hspace*{3.2cm}$y) \texttt{ in}$\\
+    \hspace*{.6cm}$\texttt{let } x_\text{resulting\_maze}\ x_\text{not\_mapped} = \texttt{sf}_\text{update}(x\ x_\text{paths}) \texttt{ in}$\\
+    \hspace*{.9cm}$\texttt{let } x_\text{number\_unmapped} = \texttt{ff}_\text{count} (x_\text{not\_mapped}) \texttt{ in}$\\
+    \hspace*{1.2cm}$\texttt{if } (x_\text{number\_unmapped} = 0$\\
+    \hspace*{2cm}$x_\text{resulting\_maze}$\\
+    \hspace*{2cm}$f\ x_\text{resulting\_maze}\ x_\text{not\_mapped}) \texttt{ in}$\\
+    \caption{Expression for our labyrinth algorithm as outlined in chapter~\ref{sec:preliminary:labyrinth}.}%
+    \label{fig:transformations:ir-first-stage}
+\end{figure}
 
 % TODO: Zeigen, dass wir von einem simplen Start-Algo ausgehen (simpler als der im vorherigen Chapter) und der dann umgewandelt werden soll intern in das, was wir davor gezeigt haben.
 
