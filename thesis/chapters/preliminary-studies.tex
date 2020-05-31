@@ -139,7 +139,8 @@ After identifying the optimizations that indeed provide a performance boost, we 
 The resulting transformations will be discussed in chapter~\ref{sec:transformations}.
 
 
-\section{Parallel Loop Implementation}
+\section{Parallel Loop Implementation}%
+\label{sec:preliminary:tf1}
 
 As Fig.~\ref{fig:preliminaries:initial-results} clearly showed, the most pressing issue with the existing Ohua implementation for Rust was the absence of any data parallelism facilities like parallel loops.
 Our first assumption based on these results was, that most performance could be gained simply by processing multiple labyrinth paths in parallel, as this operation makes up for most of the execution time in the sequential implementation.\todo{Show graphics that outline what takes how long. Take data from flamegraph}

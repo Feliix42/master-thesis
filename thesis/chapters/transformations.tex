@@ -10,7 +10,7 @@ The resulting transformations will be formally described and discussed in this c
 \section{Expression IR Definition}%
 \label{sec:transformations:expression-ir}
 
-\begin{figure}
+\begin{figure}[p]
     \begin{tabular}{l c l r}
         \multicolumn{4}{l}{\emph{Terms:}}\\
         $t$ & $::=$ & $x$ & variable\\
@@ -33,10 +33,25 @@ The resulting transformations will be formally described and discussed in this c
     \begin{tabular}{l c l}
         \multicolumn{3}{l}{\emph{Predefined Functions:}}\\
         \texttt{map}$(\lambda x.t\ [ v_1 \dots v_n ])$ & $\equiv$ & $[ (\lambda x.t)\ v_1\ \dots \ (\lambda x.t)\ v_n ]$\\
-        \texttt{nth}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $v_n$
+        \texttt{nth}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $v_n$\\
+        \texttt{split}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $[ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ]$\\
+        \texttt{join}$([ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ])$ & $\equiv$ & $[ v_1 \dots v_n \dots v_p]$
     \end{tabular}
     \caption{Language definition of the Expression IR.}%
     \label{fig:transformations:definition}
+\end{figure}
+
+\begin{figure}[p]
+    $\texttt{let } f = \lambda x y.$\\
+    \hspace*{.3cm}$\texttt{let } x_\text{paths} = \texttt{map} (\lambda z.\texttt{ff}_\text{find\_path} (x\ z)$\\
+    \hspace*{3.2cm}$y) \texttt{ in}$\\
+    \hspace*{.6cm}$\texttt{let } x_\text{resulting\_maze}\ x_\text{not\_mapped} = \texttt{sf}_\text{update}(x\ x_\text{paths}) \texttt{ in}$\\
+    \hspace*{.9cm}$\texttt{let } x_\text{number\_unmapped} = \texttt{ff}_\text{count} (x_\text{not\_mapped}) \texttt{ in}$\\
+    \hspace*{1.2cm}$\texttt{if } (x_\text{number\_unmapped} = 0$\\
+    \hspace*{2cm}$x_\text{resulting\_maze}$\\
+    \hspace*{2cm}$f\ x_\text{resulting\_maze}\ x_\text{not\_mapped}) \texttt{ in}$\\
+    \caption{Expression for our labyrinth algorithm as outlined in chapter~\ref{sec:preliminary:labyrinth}.}%
+    \label{fig:transformations:ir-first-stage}
 \end{figure}
 
 During compilation, the Ohua compiler framework parses algorithms provided as inputs into an Expression IR on which it then runs a number of optimizations, as we have shown in Figure~\ref{fig:background:ohua} in chapter~\ref{sec:background:ohua}.
@@ -54,6 +69,12 @@ This behavior is reflected in the \texttt{sf} combinator producing a list with t
 
 In order to complete the includion of legacy code into the Expression IR, values may not only be abstractions or lists of values but also values in $V_\text{h}$, the value domain of the host language.
 Aside from recursion, we also define the well-known higher-order function \texttt{map} which applies a term to a list of values and the function \texttt{nth} to retrieve a particular element from a list of values.
+The function \texttt{split} separates an input list into equally sized chunks, while the function \texttt{join} reverses this operation, flattening a list of lists into a single large list.\todo{$n \leq p$ angeben?}
+Both functions cancel each other out:
+\begin{align*}
+    \texttt{join}(\texttt{split}(n \ [v_1 \dots v_n])) \equiv [v_1 \dots v_n]
+\end{align*}
+
 As a shorthand for writing more concise terms, we introduce a simple destructuring syntax which is defined as follows:\todo{make actual definitions?}
 \begin{center}
     \begin{tabular}{l c l}
@@ -63,18 +84,46 @@ As a shorthand for writing more concise terms, we introduce a simple destructuri
     \end{tabular}
 \end{center}
 
-\begin{figure}
-    $\texttt{let } f = \lambda x y.$\\
-    \hspace*{.3cm}$\texttt{let } x_\text{paths} = \texttt{map} (\lambda z.\texttt{ff}_\text{find\_path} (x\ z)$\\
-    \hspace*{3.2cm}$y) \texttt{ in}$\\
-    \hspace*{.6cm}$\texttt{let } x_\text{resulting\_maze}\ x_\text{not\_mapped} = \texttt{sf}_\text{update}(x\ x_\text{paths}) \texttt{ in}$\\
-    \hspace*{.9cm}$\texttt{let } x_\text{number\_unmapped} = \texttt{ff}_\text{count} (x_\text{not\_mapped}) \texttt{ in}$\\
-    \hspace*{1.2cm}$\texttt{if } (x_\text{number\_unmapped} = 0$\\
-    \hspace*{2cm}$x_\text{resulting\_maze}$\\
-    \hspace*{2cm}$f\ x_\text{resulting\_maze}\ x_\text{not\_mapped}) \texttt{ in}$\\
-    \caption{Expression for our labyrinth algorithm as outlined in chapter~\ref{sec:preliminary:labyrinth}.}%
-    \label{fig:transformations:ir-first-stage}
+Using our defined calculus, we can now define an expression that describes our labyrinth benchmark from chapter~\ref{sec:preliminary:labyrinth}.
+Figure~\ref{fig:transformations:ir-first-stage} shows the \texttt{fill} algorithm as lambda expression, to which we will apply our transformations.
+
+\section{Map Parallelization}%
+\label{sec:transformations:tf1}
+
+The base idea of our first optimization developed in chapter~\ref{sec:preliminary:tf1} was to execute the path finding in parallel to make use of the multi-threading functionalities of modern commodity CPUs.
+This was possible because the path-finding loop in itself does not contain any state update and the loop iterations themselves are independent of one another.
+Since we want to have as few application logic as possible in the code generation and the runtime, it makes sense to move this optimization into the Expression IR optimization stage.
+To achieve a low-cost parallelization that does not require any knowledge about parallel loops in the runtime, we simply split the loop in question into a number of smaller loops.
+As these small loops do not exhibit any data dependencies between one another, the execution runtime can run them in parallel without having to understand, what these operators are.
+
+Although we did this in our specific example for the problem of pathfinding, this can indeed be generalized.
+Each \texttt{map} combinator which does not modify state internally, i.e., does not entail \texttt{sf} combinators, may be parallelized in this way.
+Using the predefined functions \texttt{split} and \texttt{join} we define the transformation to adapt a map operation for $p$ threads:
+
+\begin{figure}[h]
+    \begin{tabular}{l c l}
+        \multirow{5}{*}{$\texttt{let } r = \texttt{map} (t\ [v_1 \dots v_n]) \texttt{ in}$} & \multirow{5}{*}{$\underset{\text{p threads}}{\longrightarrow}$} & $\texttt{let } m_1 \dots m_p = \texttt{split} (p\ [v_1 \dots v_n]) \texttt{ in}$\\
+                                                                                            &&\hspace*{.3cm} $\texttt{let } r_1 = \texttt{map} (t\ m_1) \texttt{ in}$\\
+                                                                                            &&\hspace*{.6cm} $\dots$\\
+                                                                                            &&\hspace*{.9cm} $\texttt{let } r_p = \texttt{map} (t\ m_p) \texttt{ in}$\\
+                                                                                            &&\hspace*{1.2cm} $\texttt{let } r = \texttt{join} ([r_1 \dots r_p]) \texttt{ in}$\\
+    \end{tabular}
+    \caption{Transformation 1: Map Parallelization for $p$ threads.}%
+    \label{fig:transformations:tf1}
 \end{figure}
+
+This transformation turns a single stateless map operation into $p$ independent map operations which can then be individually scheduled and executed.
+To prove the semantic correctness of this transformation, we can show that the left and the right expression are indeed equivalent by resolving the right expression bottom-up:
+\begin{align*}
+    \texttt{join} ([r_1 \dots r_p]) &\equiv \texttt{join} (\texttt{map} (t\ m_1) \dots \texttt{map} (t\ m_p))\\
+                                    &\equiv \texttt{join} ([[t\ v_1 \dots t\ v_{\frac{n}{p}}] \dots [t\ v_{\frac{(p-1) n}{p} + 1} \dots t\ v_n]])& \text{\small by map definition}\\
+                                    &\equiv \texttt{join} (\texttt{split} (p\ [t\ v_1 \dots t\ v_n]))\\
+                                    &\equiv [t\ v_1 \dots t\ v_n]\\
+                                    &\equiv \texttt{map} (t\ [v_1 \dots v_n])
+\end{align*}
+
+Using this rather simple transformation we are now abl to split state-free loop into smaller chunks of work that can be executed in parallel due to the absence of data dependencies.
+
 
 % TODO: Zeigen, dass wir von einem simplen Start-Algo ausgehen (simpler als der im vorherigen Chapter) und der dann umgewandelt werden soll intern in das, was wir davor gezeigt haben.
 
