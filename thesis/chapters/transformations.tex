@@ -21,7 +21,7 @@ The resulting transformations will be formally described and discussed in this c
         & $|$ & \texttt{let} $f = \lambda x.t$ \texttt{in} & fixed-point combinator\\
         & $|$ & $\texttt{ff}_f (x_1 \dots x_n)$ & apply the free foreign function $f$ to $x_1 \dots x_n$\\
         &&& with $n \geq 0$.\\
-        & $|$ & $\texttt{sf}_f (s x_1 \dots x_n)$ & apply the state-modifying foreign function $f$\\
+        & $|$ & $\texttt{sf}_f (s\ x_1 \dots x_n)$ & apply the state-modifying foreign function $f$\\
         &&& to state $s$ and $x_1 \dots x_n$ with $n \geq 0$.\\\ \\
     
         \multicolumn{4}{l}{\emph{Values:}}\\
@@ -33,6 +33,14 @@ The resulting transformations will be formally described and discussed in this c
     \begin{tabular}{l c l}
         \multicolumn{3}{l}{\emph{Predefined Functions:}}\\
         \texttt{map}$(\lambda x.t\ [ v_1 \dots v_n ])$ & $\equiv$ & $[ (\lambda x.t)\ v_1\ \dots \ (\lambda x.t)\ v_n ]$\\
+                                                       && given that $\texttt{sf}_f \notin t$\\
+                                                       &&\\
+        \multirow{4}{*}{\texttt{map}$(\lambda s_0\ x.t\ [ v_1 \dots v_n ])$} & \multirow{4}{*}{$\equiv$} & $\texttt{let } s_1\ y_1 = f\ s_0\ v_1 \texttt{ in}$\\
+                                                            && \hspace*{.3cm}$\dots$\\
+                                                            && \hspace*{.6cm}$\texttt{let } s_n\ y_n = f\ s_{n-1}\ v_n \texttt{ in}$\\
+                                                            && \hspace*{.9cm}$ [s_n\ [y_1 \dots y_n]]$\\
+                                                            && given that $\texttt{sf}_f  \in t$\\
+                                                            &&\\
         \texttt{nth}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $v_n$\\
         \texttt{split}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $[ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ]$\\
         \texttt{join}$([ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ])$ & $\equiv$ & $[ v_1 \dots v_n \dots v_p]$
@@ -42,15 +50,16 @@ The resulting transformations will be formally described and discussed in this c
 \end{figure}
 
 \begin{figure}[p]
-    $\texttt{let } f = \lambda x y.$\\
-    \hspace*{.3cm}$\texttt{let } x_\text{paths} = \texttt{map} (\lambda z.\texttt{ff}_\text{find\_path} (x\ z)$\\
-    \hspace*{3.2cm}$y) \texttt{ in}$\\
-    \hspace*{.6cm}$\texttt{let } x_\text{resulting\_maze}\ x_\text{not\_mapped} = \texttt{sf}_\text{update}(x\ x_\text{paths}) \texttt{ in}$\\
-    \hspace*{.9cm}$\texttt{let } x_\text{number\_unmapped} = \texttt{ff}_\text{count} (x_\text{not\_mapped}) \texttt{ in}$\\
-    \hspace*{1.2cm}$\texttt{if } (x_\text{number\_unmapped} = 0$\\
+    $\texttt{let } f = \lambda x_{\text{maze}}\ x_{\text{points}}.$\\
+    \hspace*{.3cm}$\texttt{let } f_\text{body} = \lambda y\ z.$\\
+    \hspace*{.6cm}$\texttt{let } x_\text{path} = \texttt{ff}_\text{find\_path} (y\ z) \texttt{ in}$\\
+    \hspace*{.9cm}$\texttt{sf}_\text{update}(y\ x_\text{path}) \texttt{ in}$\\
+    \hspace*{.6cm}$\texttt{let } x_\text{resulting\_maze}\ x_\text{map\_results} = \texttt{map} (f_\text{body}\ x_\text{maze}\ x_\text{points}) \texttt{ in}$\\
+    \hspace*{.9cm}$\texttt{let } x_\text{unmapped} = \texttt{ff}_\text{get\_unmapped} (x_\text{map\_results}) \texttt{ in}$\\
+    \hspace*{1.2cm}$\texttt{if } ( \texttt{ff}_\text{count} x_\text{unmapped} = 0$\\
     \hspace*{2cm}$x_\text{resulting\_maze}$\\
     \hspace*{2cm}$f\ x_\text{resulting\_maze}\ x_\text{not\_mapped}) \texttt{ in}$\\
-    \caption{Expression for our labyrinth algorithm as outlined in chapter~\ref{sec:preliminary:labyrinth}.}%
+    \caption{Expression for our labyrinth algorithm.}%
     \label{fig:transformations:ir-first-stage}
 \end{figure}
 
@@ -59,7 +68,7 @@ We are going to describe our transformations in this intermediate representation
 The Expression IR we use is based on the call-by-need lambda calculus~\cite{ariola1997lambda, ariola1995lambda} which prevents duplicated computations.\todo{Link io-paper here as we've used it there already?}
 Figure~\ref{fig:transformations:definition} defines our expression language, which is building atop the language used in previous research on Ohua optimizations~\cite{ertel2018compiling} by Ertel et al.
 The language defines the basic terms of the call-by-need lambda calculus for variables, abstractions, application and lexical scoping.
-We additionally define conditionals and fixed-point combinators to realize recursive expressions\todo{Elaborate on fixed-point combinator?} as well as free and state-modifying foreign functions.
+We additionally define conditionals and fixed-point combinators to realize recursive expressions\todo{Should I elaborate on fixed-point combinator?} as well as free and state-modifying foreign functions.
 Using the combinator $\text{ff}_f$ one can express the application of a function $f$ which is not defined as part of the calculus to an arbitraty number of arguments.
 This allows us to integrate code written in other languages like Rust into the algorithm, which is a key premise for Ohua's concept as Embedded DSL.
 Furthermore, we expand the definitions used in previous work by adding the combinator $\text{sf}_f$, which applies a method $f$ to a state value $s$ and an arbitrary number of additional values.
@@ -68,14 +77,17 @@ Methods that are executed on a state value may alter it but are usually also all
 This behavior is reflected in the \texttt{sf} combinator producing a list with two values as result, where the first value is the the altered state value and the second value is the ordinary value produced by the function $f$.
 
 In order to complete the includion of legacy code into the Expression IR, values may not only be abstractions or lists of values but also values in $V_\text{h}$, the value domain of the host language.
-Aside from recursion, we also define the well-known higher-order function \texttt{map} which applies a term to a list of values and the function \texttt{nth} to retrieve a particular element from a list of values.
+Aside from recursion, we also define the well-known higher-order function \texttt{nth} to retrieve a particular element from a list of values.
+The function \texttt{map}\todo{Is this enough elaboration and is the link to stc lang paper ok?} applies a term to a list of values.
+Depending on whether the term applied contains a stateful function or not, the definition of the function differs as state updates need to be applied during loop execution.
+Both the definition of the \texttt{sf} combinator and the handling of it inside a map operation are based on the notion of state threads which were introduced to Ohua by Ertel et al. in recent work~\cite{ertel2019stclang}.
 The function \texttt{split} separates an input list into equally sized chunks, while the function \texttt{join} reverses this operation, flattening a list of lists into a single large list.\todo{$n \leq p$ angeben?}
 Both functions cancel each other out:
 \begin{align*}
     \texttt{join}(\texttt{split}(n \ [v_1 \dots v_n])) \equiv [v_1 \dots v_n]
 \end{align*}
 
-As a shorthand for writing more concise terms, we introduce a simple destructuring syntax which is defined as follows:\todo{make actual definitions?}
+As a shorthand for writing more concise terms, we introduce a simple destructuring syntax which has already been used in the definition of \texttt{map} and is defined as follows:
 \begin{center}
     \begin{tabular}{l c l}
         && \texttt{let} $x_{\text{result}} = \texttt{ff}_f() \texttt{ in}$\\
@@ -84,14 +96,41 @@ As a shorthand for writing more concise terms, we introduce a simple destructuri
     \end{tabular}
 \end{center}
 
+\begin{listing}[!b]
+    \begin{minted}{Rust}
+        fn fill(maze: Maze, points: Vec<(Point, Point)>) -> Maze {
+            let map_results = for pts in points {
+                let path = find_path(maze, pts);
+                maze.update(path)
+            }
+
+            let unmapped = get_unmapped(map_results);
+            if unmapped.len() == 0 {
+                maze
+            } else {
+                fill(maze, unmapped)
+            }
+        }
+    \end{minted}
+    \caption{Idiomatic definition of the labyrinth algorithm.}%
+    \label{fig:transformations:idiomatic}
+\end{listing}
+
 Using our defined calculus, we can now define an expression that describes our labyrinth benchmark from chapter~\ref{sec:preliminary:labyrinth}.
-Figure~\ref{fig:transformations:ir-first-stage} shows the \texttt{fill} algorithm as lambda expression, to which we will apply our transformations.
+As point of origin, we use an idiomatic declaration of the labyrinth algorithm which is more compact than any version in the aforementioned chapter and resembles the algorithm as it would be written by a developer.
+This version is shown in Listing~\ref{fig:transformations:idiomatic}.
+In the corresponding Lambda Expression in Fig.~\ref{fig:transformations:ir-first-stage} we bind the \texttt{fill} algorithm to a fixed-point combinator $f$.
+In it, we bind the body of the loop to $f_\text{body}$, to which we then apply the initial state value $x_\text{maze}$.
+The resulting partial binding is then mapped onto the list of input values, namely $x_\text{points}$.
+We will later attempt to apply our defined transformations exemplary to this algorithm to show how they work.\todo{"and discuss their correctness"?}
+
+\pagebreak
 
 \section{Map Parallelization}%
 \label{sec:transformations:tf1}
 
 The base idea of our first optimization developed in chapter~\ref{sec:preliminary:tf1} was to execute the path finding in parallel to make use of the multi-threading functionalities of modern commodity CPUs.
-This was possible because the path-finding loop in itself does not contain any state update and the loop iterations themselves are independent of one another.
+This was possible because the path-finding loop was altered to not contain any state update and the loop iterations themselves were therefore independent of one another.
 Since we want to have as few application logic as possible in the code generation and the runtime, it makes sense to move this optimization into the Expression IR optimization stage.
 To achieve a low-cost parallelization that does not require any knowledge about parallel loops in the runtime, we simply split the loop in question into a number of smaller loops.
 As these small loops do not exhibit any data dependencies between one another, the execution runtime can run them in parallel without having to understand, what these operators are.
@@ -122,7 +161,74 @@ To prove the semantic correctness of this transformation, we can show that the l
                                     &\equiv \texttt{map} (t\ [v_1 \dots v_n])
 \end{align*}
 
-Using this rather simple transformation we are now abl to split state-free loop into smaller chunks of work that can be executed in parallel due to the absence of data dependencies.
+Using this rather simple transformation we are now able to split state-free loops into smaller chunks of work that can be executed in parallel due to the absence of data dependencies.
+
+\section{State Decoupling}%
+\label{sec:transformations:tf15}
+
+In its initial state, a loop containing a state update, i.e., a \texttt{smap}, cannot be executed in parallel as the state update must occur sequentially to avoid locking and guarantee a deterministic execution.
+In our labyrinth example, we circumvented this by splitting the state update off and running it after the parallel path search from the start.
+But to allow any parallelization and later transformations to occur, the state-free parts of such a loop must be decoupled from the state update first, using a transaction which we will define and discuss in this intermediate step first.
+
+To formalize this, we let $t$ be a non-empty term that does not contain any state-modifying foreign functions.
+We require non-emptiness here because otherwise the \texttt{map} function would only contain a \texttt{sf} combinator in which case no parallelization can occur.
+Furthermore, we define a state-modifying foreign function $\texttt{sf}_f$ and values $v_1 \dots v_n$ which are argument to \texttt{sf} and are bound either by the lambda expression mapped over of within $t$.
+The initial state value $s$ is bound outside the \texttt{map} combinator.
+We can now define this preliminary transformation as follows:\todo{Ugh that looks disgusting}
+\begin{center}
+    \begin{tabular}{l c l}
+        & \multirow{8}{*}{$\longrightarrow$} & $\texttt{let } x_\text{intermediate} = \texttt{map} ((\lambda s\ x.$\\
+        && \hspace*{4.9cm}$t$\\
+        $\texttt{map} ((\lambda s\ x.$ && \hspace*{4.9cm}$[v_1 \dots v_n])$\\
+        \hspace*{1.65cm}$t$ && \hspace*{4cm}$[x_1 \dots x_n]) \texttt{ in}$\\
+        \hspace*{1.65cm}$\texttt{sf}_f (s\ v_1 \dots v_n))$ && \hspace*{.3cm}$\texttt{map}(( \lambda s\ y.$\\
+        \hspace*{.9cm}$[x_1 \dots x_n])$ && \hspace*{1.95cm}$\texttt{let } v_1 \dots v_n = y \texttt{ in}$\\
+                                          && \hspace*{2.25cm}$\texttt{sf}_f (s\ v_1 \dots v_n))\ s$\\
+                                          && \hspace*{1.1cm}$x_\text{intermediate}$
+    \end{tabular}
+\end{center}
+
+This transformation splits the \texttt{sf} combinator off from the rest of the loop body, allowing the first to be parallelized using our transformation from section~\ref{sec:transformations:tf1}.
+It represents a frequent pattern in shared state scenarios, where such loops often act as a fold operation on the state value.
+
+But while this transformation enables us to further optimize state loops, we also have to discuss whether this is a legitimate optimization to make or whether it may alter the semantics of the program in question.
+For the previous transformation, showing the equivalence of both terms was simple and could therefore be done.
+For this alteration however, this would unwind into a lengthy proof which would be out of scope for this thesis and shall therefore be left for future work.
+Moreover, one can see easily, that an expression can be constructed that, given the same input, will not produce the same results before and after the transformation.
+An example that immediately comes to mind is the labyrinth algorithm.
+When searching a path, the \texttt{find\_path} function reads the current state value which at no point will contain any of the previously found paths after thr transformation.
+This produces numerous write conflicts, an effect that is custom to applications exhibiting amorphous data parallelism.
+Even though equivalence may be shown for many expressions which do not read state to produce the value for the update\footnote{An example are producers in a classical producer-consumer scheme where the buffer between both is filled using a state update.}, one generally has to assume that this criteria does not hold.
+However, this is also the case for other parallelism approaches like \emph{Software Transactional Memory}, which also does not preserve equivalence to a sequential execution.
+This is due to the aforementioned amorphous data parallelism often encountered in these shared state programs.
+There is just no way to efficiently parallelize these applications without encountering their side effects.\todo{Is this argumentation solid enough?}
+Hence, we argue that this transformation is nonetheless valid, especially when migrating the application from a STM background.
+What's more, this approach manages to retain one of the core promises of Ohua: Determinism.
+Even though the results from before and after applying the transformation are not equivalent, they are both deterministic, which cannot be said about STM whose model is founded on non-deterministic execution.
+On the other hand, when attemtping to parallelize such an application for the first time, developers should be well aware os the fact that parallelizing this type of program comes with trade-offs, making our approach still seem a good fit.\todo{This ending ok?}
+
+\section{Batch Updates}%
+\label{sec:transformations:tf2}
+
+The second optimization we put forth in chapter~\ref{sec:preliminaries:retries} considered itself with improving execution times by batching state updates.
+Our general idea was that the state update forms a sequential bottleneck which severely decreases performance.
+After the application of the transformation described in section~\ref{sec:transformations:tf15} however, we found that the isolated state updates gave way to the negative side effects of applications exhibiting amorphous data parallelism.
+Hence, we wanted to introduce a way to vary the frequency of state updates in order to have a way to reduce the number of write conflicts arising from too infrequent updates.
+
+\section{Straggler Reduction using Work Stealing}%
+\label{sec:transformations:tf3}
+
+%The third modification we presented in chapter~\ref{sec:preliminary} was the improval of resource utilization by tackling the straggler problem we discovered after parallelizing state-free map operations.
+%Underlying cause for the straggler problem was the static assignment of work to specific threads.
+%Due to the non-uniform nature of most map operations encountered in real-world applications and noise introduced by the operating system itself~\cite{lackorzynski2016decoupled}, static workset assignments can produce wildly varying execution times per thread, as seen in Fig.~\ref{fig:preliminary:straggler}.
+%Hence, we applied a work-stealing task scheduling runtime to improve performance.
+
+%Admittedly, this optimization step is hardly a transformation but a mere engineering solution.
+%It can be applied by changing the code generated for the set of \texttt{map} combinators produced by the transformation in section~\ref{sec:transformations:tf1}.
+%Instead of generating a number of loop operators as originally intended, we can instead create a work-stealing runtime and schedule the loop 
+
+
+
 
 
 % TODO: Zeigen, dass wir von einem simplen Start-Algo ausgehen (simpler als der im vorherigen Chapter) und der dann umgewandelt werden soll intern in das, was wir davor gezeigt haben.
