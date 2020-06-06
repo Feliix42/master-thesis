@@ -42,8 +42,10 @@ The resulting transformations will be formally described and discussed in this c
                                                             && given that $\texttt{sf}_f  \in t$\\
                                                             &&\\
         \texttt{nth}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $v_n$\\
-        \texttt{split}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $[ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ]$\\
-        \texttt{join}$([ [v_1 \dots v_{\frac{n}{p}}]\ \dots \ [v_{\frac{(p-1) n}{p} + 1} \dots v_n] ])$ & $\equiv$ & $[ v_1 \dots v_n \dots v_p]$
+        \texttt{split}$(n \ [ v_1 \dots v_p])$ & $\equiv$ & $[ [v_1 \dots v_{\frac{p}{n}}]\ \dots \ [v_{\frac{(n-1) p}{n} + 1} \dots v_p] ]$\\
+        \texttt{join}$([ [v_1 \dots v_{\frac{p}{n}}]\ \dots \ [v_{\frac{(n-1) p}{n} + 1} \dots v_p] ])$ & $\equiv$ & $[ v_1 \dots v_p]$\\
+        \texttt{take\_n}$(n \ [ v_1 \dots v_n \dots v_p])$ & $\equiv$ & $[ [v_1 \dots v_n]\ [v_{n + 1} \dots v_p] ]$\\
+        \texttt{len}$([ v_1 \dots v_n ])$ & $\equiv$ & $n$
     \end{tabular}
     \caption{Language definition of the Expression IR.}%
     \label{fig:transformations:definition}
@@ -69,16 +71,16 @@ The Expression IR we use is based on the call-by-need lambda calculus~\cite{ario
 Figure~\ref{fig:transformations:definition} defines our expression language, which is building atop the language used in previous research on Ohua optimizations~\cite{ertel2018compiling} by Ertel et al.
 The language defines the basic terms of the call-by-need lambda calculus for variables, abstractions, application and lexical scoping.
 We additionally define conditionals and fixed-point combinators to realize recursive expressions\todo{Should I elaborate on fixed-point combinator?} as well as free and state-modifying foreign functions.
-Using the combinator $\text{ff}_f$ one can express the application of a function $f$ which is not defined as part of the calculus to an arbitraty number of arguments.
+Using the combinator $\text{ff}_f$ one can express the application of a function $f$ which is not defined as part of the calculus to an arbitrary number of arguments.
 This allows us to integrate code written in other languages like Rust into the algorithm, which is a key premise for Ohua's concept as Embedded DSL.
 Furthermore, we expand the definitions used in previous work by adding the combinator $\text{sf}_f$, which applies a method $f$ to a state value $s$ and an arbitrary number of additional values.
 We made this addition in order to model the state manipulations usually found in shared state applications.
 Methods that are executed on a state value may alter it but are usually also allowed to return another value (e.g., when reading from a piece of state).
 This behavior is reflected in the \texttt{sf} combinator producing a list with two values as result, where the first value is the the altered state value and the second value is the ordinary value produced by the function $f$.
 
-In order to complete the includion of legacy code into the Expression IR, values may not only be abstractions or lists of values but also values in $V_\text{h}$, the value domain of the host language.
+In order to complete the inclusion of legacy code into the Expression IR, values may not only be abstractions or lists of values but also values in $V_\text{h}$, the value domain of the host language.
 Aside from recursion, we also define the well-known higher-order function \texttt{nth} to retrieve a particular element from a list of values.
-The function \texttt{map}\todo{Is this enough elaboration and is the link to stc lang paper ok?} applies a term to a list of values.
+The function \texttt{map}\todo{Is this enough elaboration and is the link to stc lang paper OK?} applies a term to a list of values.
 Depending on whether the term applied contains a stateful function or not, the definition of the function differs as state updates need to be applied during loop execution.
 Both the definition of the \texttt{sf} combinator and the handling of it inside a map operation are based on the notion of state threads which were introduced to Ohua by Ertel et al. in recent work~\cite{ertel2019stclang}.
 The function \texttt{split} separates an input list into equally sized chunks, while the function \texttt{join} reverses this operation, flattening a list of lists into a single large list.\todo{$n \leq p$ angeben?}
@@ -86,6 +88,8 @@ Both functions cancel each other out:
 \begin{align*}
     \texttt{join}(\texttt{split}(n \ [v_1 \dots v_n])) \equiv [v_1 \dots v_n]
 \end{align*}
+The function \texttt{take\_n} splits the input list into two parts, where the first list contains the first $n$ elements (or the whole input list, whichever is smaller) and the second list forms the remainder of the input list.
+\texttt{len} is a simple function to determine the length of a list.
 
 As a shorthand for writing more concise terms, we introduce a simple destructuring syntax which has already been used in the definition of \texttt{map} and is defined as follows:
 \begin{center}
@@ -122,7 +126,7 @@ This version is shown in Listing~\ref{fig:transformations:idiomatic}.
 In the corresponding Lambda Expression in Fig.~\ref{fig:transformations:ir-first-stage} we bind the \texttt{fill} algorithm to a fixed-point combinator $f$.
 In it, we bind the body of the loop to $f_\text{body}$, to which we then apply the initial state value $x_\text{maze}$.
 The resulting partial binding is then mapped onto the list of input values, namely $x_\text{points}$.
-We will later attempt to apply our defined transformations exemplary to this algorithm to show how they work.\todo{"and discuss their correctness"?}
+%We will later attempt to apply our defined transformations exemplary to this algorithm to show how they work.\todo{"and discuss their correctness"?}
 
 \pagebreak
 
@@ -155,7 +159,7 @@ This transformation turns a single stateless map operation into $p$ independent 
 To prove the semantic correctness of this transformation, we can show that the left and the right expression are indeed equivalent by resolving the right expression bottom-up:
 \begin{align*}
     \texttt{join} ([r_1 \dots r_p]) &\equiv \texttt{join} (\texttt{map} (t\ m_1) \dots \texttt{map} (t\ m_p))\\
-                                    &\equiv \texttt{join} ([[t\ v_1 \dots t\ v_{\frac{n}{p}}] \dots [t\ v_{\frac{(p-1) n}{p} + 1} \dots t\ v_n]])& \text{\small by map definition}\\
+                                    &\equiv \texttt{join} ([[t\ v_1 \dots t\ v_{\frac{p}{n}}] \dots [t\ v_{\frac{(n-1) p}{n} + 1} \dots t\ v_p]])& \text{\small by map definition}\\
                                     &\equiv \texttt{join} (\texttt{split} (p\ [t\ v_1 \dots t\ v_n]))\\
                                     &\equiv [t\ v_1 \dots t\ v_n]\\
                                     &\equiv \texttt{map} (t\ [v_1 \dots v_n])
@@ -184,7 +188,7 @@ We can now define this preliminary transformation as follows:\todo{Ugh that look
         \hspace*{1.65cm}$\texttt{sf}_f (s\ v_1 \dots v_n))$ && \hspace*{.3cm}$\texttt{map}(( \lambda s\ y.$\\
         \hspace*{.9cm}$[x_1 \dots x_n])$ && \hspace*{1.95cm}$\texttt{let } v_1 \dots v_n = y \texttt{ in}$\\
                                           && \hspace*{2.25cm}$\texttt{sf}_f (s\ v_1 \dots v_n))\ s$\\
-                                          && \hspace*{1.1cm}$x_\text{intermediate}$
+                                          && \hspace*{1.1cm}$x_\text{intermediate})$
     \end{tabular}
 \end{center}
 
@@ -196,7 +200,7 @@ For the previous transformation, showing the equivalence of both terms was simpl
 For this alteration however, this would unwind into a lengthy proof which would be out of scope for this thesis and shall therefore be left for future work.
 Moreover, one can see easily, that an expression can be constructed that, given the same input, will not produce the same results before and after the transformation.
 An example that immediately comes to mind is the labyrinth algorithm.
-When searching a path, the \texttt{find\_path} function reads the current state value which at no point will contain any of the previously found paths after thr transformation.
+When searching a path, the \texttt{find\_path} function reads the current state value which at no point will contain any of the previously found paths after the transformation.
 This produces numerous write conflicts, an effect that is custom to applications exhibiting amorphous data parallelism.
 Even though equivalence may be shown for many expressions which do not read state to produce the value for the update\footnote{An example are producers in a classical producer-consumer scheme where the buffer between both is filled using a state update.}, one generally has to assume that this criteria does not hold.
 However, this is also the case for other parallelism approaches like \emph{Software Transactional Memory}, which also does not preserve equivalence to a sequential execution.
@@ -205,27 +209,59 @@ There is just no way to efficiently parallelize these applications without encou
 Hence, we argue that this transformation is nonetheless valid, especially when migrating the application from a STM background.
 What's more, this approach manages to retain one of the core promises of Ohua: Determinism.
 Even though the results from before and after applying the transformation are not equivalent, they are both deterministic, which cannot be said about STM whose model is founded on non-deterministic execution.
-On the other hand, when attemtping to parallelize such an application for the first time, developers should be well aware os the fact that parallelizing this type of program comes with trade-offs, making our approach still seem a good fit.\todo{This ending ok?}
+On the other hand, when attempting to parallelize such an application for the first time, developers should be well aware of the fact that parallelizing this type of program comes with trade-offs, making our approach still seem a good fit.\todo{This ending OK?}
 
 \section{Batch Updates}%
 \label{sec:transformations:tf2}
 
 The second optimization we put forth in chapter~\ref{sec:preliminaries:retries} considered itself with improving execution times by batching state updates.
 Our general idea was that the state update forms a sequential bottleneck which severely decreases performance.
-After the application of the transformation described in section~\ref{sec:transformations:tf15} however, we found that the isolated state updates gave way to the negative side effects of applications exhibiting amorphous data parallelism.
-Hence, we wanted to introduce a way to vary the frequency of state updates in order to have a way to reduce the number of write conflicts arising from too infrequent updates.
+After the application of the transformation described in section~\ref{sec:transformations:tf15} however, we found that the isolated state updates gave way to the negative side effects of applications exhibiting amorphous data parallelism which mainly manifested in increased write conflicts due to infrequent updates.
+Hence, we wanted to introduce a way to vary the frequency of state updates in order to have a way to reduce the number of conflicts.
+
+In our preliminary studies, we tackled this problem by only ever processing an arbitrary but fixed number of elements before updating the state.
+Although we mixed the retry semantics of the algorithm itself with the update frequency approach in chapter~\ref{sec:preliminaries:retries} by immediately appending any failed updates to the back of the work set instead of putting them in a separate list, we can distill a generic transformation from this approach.
+Basic idea for this transformation is to turn the stateful loop into a recursive combinator that always takes up to $n$ elements per recursion step from the input set and processes them until all elements have been processed.
+To formalize this we let $n$ be the number of items to be processed per step.
+As for the previous transformation, $s$ defines the initial state value and is bound outside of the \texttt{map} expression, while $[x_1 \dots x_p]$ is the set of input values for the map operation.
+The term $t$ does not contain any \texttt{sf} combinators and the values $v_1 \dots v_p$ are all bound within the scope of the lambda expression mapped over.
+The transformation is then defined as follows:
+\begin{center}
+    \begin{tabular}{l}
+        $\texttt{map} ((\lambda s\ y.t\ \texttt{sf}_f(s\ v_1 \dots v_p))\ s\ [x_1 \dots x_p])$\\
+    \end{tabular}
+
+    $\downarrow$
+
+    \begin{tabular}{l}
+        $\texttt{let } r = \lambda s_0\ x.$\\
+        \hspace*{.3cm}$\texttt{let } x_\text{input}\ x_\text{rest} = \texttt{take\_n}( n\ x) \texttt{ in}$\\
+        \hspace*{.6cm}$\texttt{let } s_\text{new}\ x_\text{result} = \texttt{map} ((\lambda s\ y.t\ \texttt{sf}_f(s\ v_1 \dots v_n))\ s_0 \ x_\text{input}) \texttt{ in}$\\
+        \hspace*{.9cm}$\texttt{if} (\texttt{len} (x_\text{rest}) = 0$\\
+        \hspace*{1.5cm}$[s_\text{new}\ x_\text{result}]$\\
+        \hspace*{1.5cm}$(\texttt{let } s_\text{res}\ x_\text{res} = r\ s_\text{new} \ x_\text{rest} \texttt{ in}$\\
+        \hspace*{1.8cm}$s_\text{res}\ \texttt{join} (x_\text{result} x_\text{res})) \texttt{ in}$\\
+        \hspace*{.3cm}$r \ s \ [x_1 \dots x_p]$
+    \end{tabular}
+\end{center}
+
+Note that we used in this transformation a non-decoupled stateful loop for the sake of brevity only.
+The decoupling step may be applied either before or after this step to expose the necessary loop parallelism that warrants this transformation in the first place.
+
+One can see easily, that this transformation also retains Ohua's determinstic approach: All elements are processed in the same order and state updates are also applied in the same, fixed order for each value for $n$.
+But, as was the case for the transformation in section~\ref{sec:transformations:tf15} and has been exhaustively discussed there, semantic equivalence is not preserved by this operation either.\todo{needs fnal remarks?}
 
 \section{Straggler Reduction using Work Stealing}%
 \label{sec:transformations:tf3}
 
-%The third modification we presented in chapter~\ref{sec:preliminary} was the improval of resource utilization by tackling the straggler problem we discovered after parallelizing state-free map operations.
-%Underlying cause for the straggler problem was the static assignment of work to specific threads.
-%Due to the non-uniform nature of most map operations encountered in real-world applications and noise introduced by the operating system itself~\cite{lackorzynski2016decoupled}, static workset assignments can produce wildly varying execution times per thread, as seen in Fig.~\ref{fig:preliminary:straggler}.
-%Hence, we applied a work-stealing task scheduling runtime to improve performance.
+The third modification we presented in chapter~\ref{sec:preliminary} was the improving of resource utilization by tackling the straggler problem we discovered after parallelizing state-free map operations.
+Underlying cause for the straggler problem was the static assignment of work to specific threads.
+Due to the non-uniform nature of most map operations encountered in real-world applications and noise introduced by the operating system itself~\cite{lackorzynski2016decoupled}, static work set assignments can produce wildly varying execution times per thread, as seen in Fig.~\ref{fig:preliminary:straggler}.
+Hence, we applied a work-stealing task scheduling runtime to improve performance.
 
-%Admittedly, this optimization step is hardly a transformation but a mere engineering solution.
-%It can be applied by changing the code generated for the set of \texttt{map} combinators produced by the transformation in section~\ref{sec:transformations:tf1}.
-%Instead of generating a number of loop operators as originally intended, we can instead create a work-stealing runtime and schedule the loop 
+Admittedly, this optimization step is hardly a transformation but a mere engineering solution.
+It can be applied by changing the code generated for the set of \texttt{map} combinators produced by the transformation in section~\ref{sec:transformations:tf1}.
+Instead of generating a number of loop operators as originally intended, we can instead create a work-stealing runtime and schedule the loop operations as tasks in the runtime.
 
 
 
