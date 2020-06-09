@@ -4,7 +4,7 @@
 \label{sec:experiments}
 
 In order to compare the performance of Software Transactional Memory against Ohua, we employ a set of benchmarks originally proposed by Minh et al.~\cite{minh2008stamp}.
-In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare Ohua's performance against STM.
+In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare Ohua's performance against STM.\todo{Überall noch erwartete Performance bei benches ranschreiben?}
 Additionally, we will discuss the values measured during execution of the benchmarks and their relevance for the evaluation.
 
 \section{Benchmark Choice}
@@ -92,6 +92,15 @@ We did so in an idiomatic way, applying both concepts to the problems using the 
 
 \subsection{Labyrinth Path Mapping}
 \label{sec:experiments:labyrinth}
+
+The labyrinth benchmark we presented in chapter~\ref{sec:preliminaries:labyrinth} based on the work of Swalens et al.~\cite{swalens2016transactional} was originally proposed by Minh et al. as possible benchmark for Software Transactional Memory.
+Since we have already analyzed and implemented this application, it was apparent for us to adduce it for our concluding comparison.
+Additionally, is is one of very few\todo{check again if that's the case!} benchmarks in the suite exhibiting amorphous data parallelism, a trait the authors did not consider when compiling their benchmark list but which they happened to include by coincidence, as it is frequently encountered in real-life applications using shared state, the main use case for transactional memory applications.
+Another interesting property of the benchmark was its frequent use of transactions (the whole algorithm is executed within transactions) and the high contention on the shared data structure, which puts the synchronization primitives under heavy stress.
+
+\todo{Braucht es noch Anmkerungen, warum das hier interessant ist?}
+
+
 %The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
 %Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
 %Based of their algorithm description, we implemented the benchmark, as it has been described in chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
@@ -100,27 +109,76 @@ We did so in an idiomatic way, applying both concepts to the problems using the 
 \subsection{Intruder Detection}
 \label{sec:experiments:intruder}
 
-\subsection{Genome Sequencing}
-\label{sec:experiments:genome}
-%This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
-%Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
+The intruder application implements a signature-based Network Intrusion Detection System (NIDS) and is used in networking to detect attacks or malicious activities in an active network as well as policy violations.
+It is based on design proposal number five of Haagdorens et al.'s work on \enquote{Improving the Performance of Signature-Based Network Intrusion Detection Sensorz by Multi-Threading}~\cite{haagdorens2004improving}.
 
-%The first step in the algorithm is to deduplicate the DNA segments that have been provided as inputs, since there are usually many duplications.
-%The second phase is then concerned with finding neighboring segments in the remaining pool of DNA parts by utilizing overlap matching.
-%By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.\todo{Visualize this!}
-%After this phase has finished, all but two segments have a predecessor and successor assigned.
-%Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
+The basic function of this application is to scan incoming network packets and match them against known intrusion signatures.
+This happens in three distinct stages, as outlined in Fig.~\ref{fig:experiments:intruder:workflow}.
+Incoming network traffic is captures and queued for inspection.
+Due to the architecture of modern network protocols, individual data flows have to be split into several packets that are transmitted individually and may reach the recipient out of order.
+Attackers have used this in the past by splitting malicious flows and sending them out of order to avoid detection.
+To counter this, the second step in the algorithm is to deploy stateful detection avoidance countermeasures, which involve preprocessing the received packets and reassembling the original flows.
+These flows can then finally be matched against known attack patterns, filtering any malicious packets from the stream of incoming data.
 
-%In STM, the deduplication phase as well as the matching phase are implemented in parallel.
+\begin{figure}
+    \missingfigure{Add figure showing how intruder operates}
+    \caption{Workflow of the Intruder Benchmark. Processing of incoming data is conducted in three stages.}%
+    \label{fig:experiments:intruder:workflow}
+\end{figure}
 
-% As was the case in the \emph{intruder} benchmark, Minh et al.\ used their own, transaction-ready 
-% Effectively, phase two of the algorithm boils down to the construction of a linked list from a set of elements.
+While our STM implementation performs the steps two and three in parallel, in Ohua only the thirs step is parallelized by the compiler since the second step consists only of a loop that appends all inputs to a state value.
+Since the loop body does not contain any other state-free functions, no transformations from chapter~\ref{sec:transformations} may be applied.
+Step three however consists of a state-free loop where all inputs are checked for malicious data flows, something that can easily be optimized by applying transformation one as presented in chapter~\ref{sec:transformations:tf1}.
+This shows that Ohua may only extract parallelism from irregular applications that fit certain criteria, i.e., contain loops that do not only contain state-modifying operations, as its main approach is to exploit data parallelism by the use of certain transformations to uncover it.
+
+This benchmark was chosen because it is mostly similar in its properties to the labyrinth application as it also features short transactions and high contention on the shared data, but does only spend about 33 \% of the overall execution time in transactions.
+We mainly wanted to see, how this slight difference in properties is reflected in the performance results.
+
 
 \subsection{K-means Clustering}
 \label{sec:experiments:kmeans}
 
+Proposed as benchmark by Narayanan et al.~\cite{narayanan2006minebench} the k-means clustering algorithm partitions a set of $n$ observations into $k$ clusters.
+It was originally put forth by MacQueen et al. in 1967~\cite{macqueen1967some} and still is a very popular algorithm for cluster analysis in data mining which is often used to classify data.
 
+The inner workings of the algorithm are rather simple: It takes a set of $n$ observations and a desired number of clusters to sort the observations into.
+Then the $k$ cluster centroids are initialized.
+Many ways exist to realize this but we chose, akin to our C reference implementation, to select each coordinate for each cluster centroid randomly from the coordinates preset by the input data set.
+Following this initialization, each observation is assigned to its nearest cluster based on the squared multi-dimensional spatial euclidian distance between both points.
+Afterwards, new centroids are computed by calculating the means of all observations now assigned to a certain cluster.
+These last two steps now get repeated iteratively until the algorithm either reaches an upper bound of iterations or converges, i.e., less than a certain percentage of observations change per iteration.
 
+In STM each iteration is executed completely in parallel, splitting the input dataset equally among the executing threads and guarding access to the centroids and the delta value which is used for deciding on convergence using transactions.
+Ohua also does each iteration in parallel using transformations one and three\todo{Numbering ok like this? Has afaik never been officially established} to exploit data parallelism although the loop has been written in the algorithm in a way to make sure no shared state exists within.
+
+k-means is very much like the intruder benchmark in the regard that its parallelism opportunities are limited to a single state-free loop but unlike the aforementioned benchmark k-means features low contention on shared data structures while presenting a similar transaction utilization, making this an interesting benchmark to look at.
+
+\subsection{Genome Sequencing}
+\label{sec:experiments:genome}
+This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
+Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
+
+The first step in the algorithm is to deduplicate the DNA segments that have been provided as inputs, since there are usually many duplications.
+The second phase is then concerned with finding neighboring segments in the remaining pool of DNA parts by utilizing overlap matching.
+By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.\todo{Visualize this!}
+After this phase has finished, all but two segments have a predecessor and successor assigned.
+Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
+
+In STM, the deduplication phase as well as the matching phase are implemented in parallel using a transaction-aware hash set implementation for the first and a doubly-linked list for the latter.
+Although we cannot provide an implementation for a hash set that can be shared using Ohua, we opted to assist the compiler in uncovering parallelism in the deduplication step by manually partitioning the worklist beforehand, so that the compiler may break the resulting state-free loop using the first transformation:
+\begin{minted}{Rust}
+fn dedup(segments: Segments, threadcount: usize) -> Vec<SequencerItem> {
+    let parts = partition(segments, threadcount);
+    for p in parts {
+        deduplicate(p)
+    }
+}
+\end{minted}
+The second step is also a simple state-free loop, which can be easily parallelized by just applying transformation four.
+This application example shows, that even when using Ohua, code sometimes has to be written in a certain way to expose the parallelism opportunities of a computation to the compiler.
+Nevertheless, the resulting Ohua algorithms can still be executed as a sequential program while the resulting STM code which is even more optimized by the use of special data structures, is unable to do so.
+
+Overall we chose this application to complete our benchmark selection as it provides similar properties as the kmeans benchmark in terms of transaction length and contention but spends nearly all its execution time in transactions, a stark change compared to the 7 \% of transaction time in kmeans.
 
 
 
@@ -181,7 +239,7 @@ The \texttt{kmeans} benchmark inputs are additionally labeled as \emph{high} and
 \label{sec:experiments:measurements:values}
 
 For the purpose of our comparison between Ohua and STM, two values are of importance and have hence been measured.
-As we are calculating the speedups of both implementation in reference to a sequential implementation, the execution time, i.e., the time it takes the algorithm to complete, is relevant.
+As we are calculating the speedups of both implementation in reference to a sequential implementation, the execution time in milliseconds, i.e., the time it takes the algorithm to complete, is relevant.
 Moreover, we were interested in the power consumption of both algorithms.
 But since measuring the power consumption of the algorithms would have been to complicated and time-consuming, we opted for measuring the total CPU time used by the programs, as the amount of power used while processing is resulting from the utilization of a PCs individual components.
 Since all these programs are performing purely in-memory computations, we figured that measuring the CPU time would be a sufficient approximation to draw some general conclusions regarding the power usage.
@@ -190,9 +248,11 @@ For both measured values, the setup phase (parsing input arguments and reading i
 This was done in order to reduce potential noise from Operating System calls resulting from the I/O operations performed in these stages.\todo{Evtl. über Genauigkeit bei Messungen reden? (Messung in ms, messfehler, ...)}
 Research has shown in the past that this noise, as well as different contention scenarios can severely impact the measured time values, leading to variations in the measured time values.
 To take this into account and produce more realistic results, each measurement has been done 30 times, to that statistical outliers do not carry as much weight.
+From the resulting measured values the geometric mean was calculated per data point to compile all measurements into a single data point.
 
 \subsection{Running Configuration}
 \label{sec:experiments:measurements:hardware}
 
-All experiments conducted for this work\todo{any exceptions here? e.g., flamegraphs?} were run on a server with 128GB RAM and two Intel Xeon E5-2630 v2 processors which have a base frequency of 2.60 GHz and offer combined 12 cores with 24 threads.
+All benchmarks conducted for this work were run on an Ubuntu 18.04 server with 128GB RAM and two Intel Xeon E5-2630 v2 processors which have a base frequency of 2.60 GHz and offer combined 12 cores with 24 threads.
+At all times, the program under inspection was running exclusively on the machine, meaning that aside from background operating system jobs, no other tasks ran on the system simultaneously.\todo{keep out to have this as source for errors?}
 
