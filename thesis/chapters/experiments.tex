@@ -121,7 +121,7 @@ To counter this, the second step in the algorithm is to deploy stateful detectio
 These flows can then finally be matched against known attack patterns, filtering any malicious packets from the stream of incoming data.
 
 \begin{figure}
-    \missingfigure{Add figure showing how intruder operates}
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/experiments-intruder}
     \caption{Workflow of the Intruder Benchmark. Processing of incoming data is conducted in three stages.}%
     \label{fig:experiments:intruder:workflow}
 \end{figure}
@@ -158,9 +158,20 @@ k-means is very much like the intruder benchmark in the regard that its parallel
 This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
 Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
 
+\begin{figure}[b]
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/experiments-genome}
+    \caption{Visualization of the overlap matching found in the genome benchmark. The blue match is stronger as it has seven matching elements and has hence been found first.}
+    \label{fig:experiments:genome-example}
+\end{figure}
+
 The first step in the algorithm is to deduplicate the DNA segments that have been provided as inputs, since there are usually many duplications.
 The second phase is then concerned with finding neighboring segments in the remaining pool of DNA parts by utilizing overlap matching.
-By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.\todo{Visualize this!}
+By reducing the overlap size each iteration, the best possible fit is chosen for each neighbor search.
+Figure~\ref{fig:experiments:genome-example} provides visualization of how this matching works.
+Starting from a match length of $n-1$, the algorithm attempts to find a matching predecessor-successor pair for all loose ends.
+With each iteration, the match length is reduced, until it ends with an overlap of one.
+In our example, the blue overlap match is found first due to seven matching nucleotides.
+Three iterations later, the green match is established, fully connecting the centered genome segment.
 After this phase has finished, all but two segments have a predecessor and successor assigned.
 Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
 
@@ -255,4 +266,22 @@ From the resulting measured values the geometric mean was calculated per data po
 
 All benchmarks conducted for this work were run on an Ubuntu 18.04 server with 128GB RAM and two Intel Xeon E5-2630 v2 processors which have a base frequency of 2.60 GHz and offer combined 12 cores with 24 threads.
 At all times, the program under inspection was running exclusively on the machine, meaning that aside from background operating system jobs, no other tasks ran on the system simultaneously.\todo{keep out to have this as source for errors?}
+
+\subsection{Reference Measurements}
+\label{sec:experiments:measurements:reference}
+
+\todo{Make section?}
+Minh et al.\ proposed their STAMP suite in 2008.
+Since then, hardware (e.g., clock speeds of CPUs) as well as compile-time optimizations have evolved significantly, rendering the results provided in their paper outdated.
+Hence, we decided to run the benchmarks relevant to our investigation again, on the same hardware and under the same conditions as our Rust benchmarks to have a reference we can compare our STM implementations to.
+
+Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in chapter~\ref{sec:introduction}.
+The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.
+We reported this issue~\cite{wittwer2020stampgenome} and employed a workaround to be able to use the benchmark nonetheless.
+Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash.\todo{report?}
+Similar behavior was found for the intruder application, although we did not investigate this further, instead discarding failed runs in both cases, owering the effective number of test results slightly below 30.
+These issues cement some of the drawbacks of STAMP and STM in general, which we discussed in the beginning of this thesis.
+
+For comparability and in order to provide a more complete performance graph, we intended to run the selected four benchmarks also for 1-24 threads but the suite only supports thread counts which are a power of two, leaving us with 1, 2, 4, 8 and 16 threads as test parameters.
+Due to this limited result range, we will only be able to draw vague general comparisons between STAMPs STM and our own STM implementation as the sparse result coverage for higher thread counts leaves us unable to reliably identify trends in the performance of STAMP.
 
