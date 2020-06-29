@@ -274,6 +274,7 @@ At all times, the program under inspection was running exclusively on the machin
 Minh et al.\ proposed their STAMP suite in 2008.
 Since then, hardware (e.g., clock speeds of CPUs) as well as compile-time optimizations have evolved significantly, rendering the results provided in their paper outdated.
 Hence, we decided to run the benchmarks relevant to our investigation again, on the same hardware and under the same conditions as our Rust benchmarks to have a reference we can compare our STM implementations to.
+Although the authors themselves only measured results for the smaller two of their three suggested input sets, we tested all three to have a more comprehensive set of results to compare our STM implementation against.\todo{ok?}
 
 Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in chapter~\ref{sec:introduction}.
 The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.

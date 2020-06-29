@@ -20,6 +20,41 @@ Subsequently, we will analyze the results of our Ohua benchmarks in detail to se
     \label{fig:evaluation:stamp:genome}
 \end{figure}
 
+Benchmark results for the runs we conducted can be found in Figure~\ref{fig:evaluation:stamp:genome}.
+We will compare our achieved speedups to the orginal benchmarking runs from Minh et al.~\cite{minh2008stamp}, namely to the results of their Eager STM implementation to see, how performance of the framework changes over the years.
+This allows us to set realisitic expectations for the performance of our own STM-based benchmark implementations.
+
+In the \emph{labyrinth} benchmark, we observed an increasing speedup for up to 8 threads in the small and medium sized problem sets, maxing at about 3.0 speedup and followed by declining performance for 16 threads.
+The largest input data set on the other hand exhibits a steadily increasing curve, achieving a speedup of about 6.0 for 16 threads.
+This deviates from the original results, where both the labyrinth and the labyrinth+ benchmark showed behavior similar to our labyrinth++ curve form: A continuously increasing performance, achieving a speedup of about 4.0 at best.
+The form of the curve and the overall reduced performance may indicate that either the sequential implementation is performing better now than it did back in 2008 or that the overhead of the \texttt{tl2} STM framework increased.
+Our first theory is backed as possible cause by the fact that compiler optimizations have improved in the past years along with CPU clock speeds, making a better sequential performance not unlikely.
+An increased framework overhead on the other hand would also support the performance drop for 16 threads, which the better sequential performance does not explain.
+Another explanation for this decline would be our used hardware architecture, as it consists of two CPUs.
+While all runs up to 8 threads can be executed on a single CPU, the 16 thread version requires the utilization of both cores, requiring more complex memory and resource management which in turn takes more time and may also be an explanation since we do not know if Minh et al.\ had similar hardware.
+But since we only made this and the following measurements as reference points for the data we acquired in our own experiments, we did not investigate the causes for this behavior beyond speculations to possible reasons and will leave this to future work.
+
+A similar deviation from the original measurements can be seen for the \emph{intruder} application.
+Our own results show a curve that peaks at 4 or 8 threads respectively, before declining again.
+Mximum speedups are as low as 0.3 for the small, about 0.2 for the medium and 0.8 for the largest input set.
+The original results on the other hand show Eager STM achieving a speedup slightly below 1 for both intruder and intruder+\footnote{Hardware-based Transactional Memory approaches perform generally better in this benchmark.} meaning that our results are again remotely similar, taking into account our previous assumptions about possible changes in the execution environment compared to the original benchmarks.
+
+For its high-contention scenario, our \emph{kmeans} measurements show a similar behavior as the previous applications.
+Both smaller benchmarks achieve peak performance for 8 threads while performance decreases for 16 threads or stagnates in the case of kmeans-high++.
+In the original measurements however, the authors achieved steadily increasing near-linear speedups like our high++ version did with speedups of up to 4.0 for both input sets while we only achieved a maximal speedup of 1.0 for both high+ and high++.\\
+A more stark deviation is visible in the low-contention variant of the benchmark:
+The original speedup grew linearly with increasing number of threads used due to the low contention, maxing out at execution times 9 or 10 times faster than the sequential version respectively.
+We again have a peak performance at 8 threads for the kmeans-low variant but steadily increasing speedups for low+ and low++, achieving a 3.5 speedup.
+
+In \emph{genome}, we achieved for the first time curve shapes similar to the original results from Minh et al., although the original results showed peak performance at 4 threads while our results peak at 8 threads before decreasing again.
+Also, our total achieved speedup is slightly below the originally reported numbers.
+The solid performance of genome++ might be due to the fact that the overhead of the used framework amortized for this large input set.
+
+Overall, our results are remotely similar to the original results, although we consistently observed worse results than reported in the original.
+We identified either a better sequential performance, increased framework overhead or hardware overhead as possible sources, but in reality it may even be a combination of all these factors.
+Duw to the fact that both result sets vary greatly, we opted to discard the original results reported by Minh et al.\ in favor of using our own measurements as reference for our Rust-STM implementations.
+
+
 \section{Rust-based Benchmark Results}
 
 \begin{figure}
