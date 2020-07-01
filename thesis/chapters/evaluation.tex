@@ -17,12 +17,12 @@ Subsequently, we will analyze the results of our Ohua benchmarks in detail to se
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/stamp/stamp_kmeans-low_comb}
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/stamp/stamp_genome_comb}
     \caption{Speedup achieved by STM in the original STAMP  benchmarks.}%
-    \label{fig:evaluation:stamp:genome}
+    \label{fig:evaluation:stamp}
 \end{figure}
 
 Benchmark results for the runs we conducted can be found in Figure~\ref{fig:evaluation:stamp:genome}.
-We will compare our achieved speedups to the orginal benchmarking runs from Minh et al.~\cite{minh2008stamp}, namely to the results of their Eager STM implementation to see, how performance of the framework changes over the years.
-This allows us to set realisitic expectations for the performance of our own STM-based benchmark implementations.
+We will compare our achieved speedups to the original benchmark runs from Minh et al.~\cite{minh2008stamp}, namely to the results of their Eager STM implementation to see, how performance of the framework changes over the years.
+This allows us to set realistic expectations for the performance of our own STM-based benchmark implementations.
 
 In the \emph{labyrinth} benchmark, we observed an increasing speedup for up to 8 threads in the small and medium sized problem sets, maxing at about 3.0 speedup and followed by declining performance for 16 threads.
 The largest input data set on the other hand exhibits a steadily increasing curve, achieving a speedup of about 6.0 for 16 threads.
@@ -36,7 +36,7 @@ But since we only made this and the following measurements as reference points f
 
 A similar deviation from the original measurements can be seen for the \emph{intruder} application.
 Our own results show a curve that peaks at 4 or 8 threads respectively, before declining again.
-Mximum speedups are as low as 0.3 for the small, about 0.2 for the medium and 0.8 for the largest input set.
+Maximum speedups are as low as 0.3 for the small, about 0.2 for the medium and 0.8 for the largest input set.
 The original results on the other hand show Eager STM achieving a speedup slightly below 1 for both intruder and intruder+\footnote{Hardware-based Transactional Memory approaches perform generally better in this benchmark.} meaning that our results are again remotely similar, taking into account our previous assumptions about possible changes in the execution environment compared to the original benchmarks.
 
 For its high-contention scenario, our \emph{kmeans} measurements show a similar behavior as the previous applications.
@@ -52,7 +52,7 @@ The solid performance of genome++ might be due to the fact that the overhead of 
 
 Overall, our results are remotely similar to the original results, although we consistently observed worse results than reported in the original.
 We identified either a better sequential performance, increased framework overhead or hardware overhead as possible sources, but in reality it may even be a combination of all these factors.
-Duw to the fact that both result sets vary greatly, we opted to discard the original results reported by Minh et al.\ in favor of using our own measurements as reference for our Rust-STM implementations.
+Due to the fact that both result sets vary greatly, we opted to discard the original results reported by Minh et al.\ in favor of using our own measurements as reference for our Rust-STM implementations.
 
 
 \section{Rust-based Benchmark Results}
@@ -64,12 +64,23 @@ Duw to the fact that both result sets vary greatly, we opted to discard the orig
     \label{fig:evaluation:labyrinth}
 \end{figure}
 
+We already discussed in detail the performance of the \emph{labyrinth} application for Ohua and STM that is shown in Fig.~\ref{fig:evaluation:labyrinth} in chapter~\ref{sec:preliminary}.
+Notably, Ohua performs slightly worse than STM, but shows the same overall scaling behavior for more cores while exhibiting less variance in the results.
+For labyrinth++, one can not state clearly, which benchmark performs better due to the comparatively large variance in the STM results.
+The Software Transactional Memory implementation itself performs just as the original STAMP implementation by Minh et al.~\cite{minh2008stamp}, reinforcing the validity of our comparison.\todo{which comparison?????}
+
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_labyrinth_comb}
     \caption{CPU time used by both frameworks in the labyrinth application.}%
     \label{fig:evaluation:labyrinth-cpu}
 \end{figure}
+
+When comparing the CPU time used by both Ohua and STM as shown in Figure~\ref{fig:evaulation:labyrinth-cpu}, we unsurprisingly see an overall growing demand for computation time as creating more threads and moving data between them in itself takes more time.
+Interestingly one can observe the correlation between the time spikes for both applications in the labyrinth+ benchmark and a degraded performance for the respective thread counts.
+Due to Ohua's algorithm structure, low thread counts become even less performant for smaller input sets, as fewer threads require more loops of the algorithm, creating a non-negligible runtime overhead.
+This becomes irrelevant for larger inputs such as labyrinth++, though.
+
 
 \begin{figure}
     \centering
@@ -85,6 +96,22 @@ Duw to the fact that both result sets vary greatly, we opted to discard the orig
     \label{fig:evaluation:intruder-cpu}
 \end{figure}
 
+For the \emph{intruder} program, both frameworks deliver extremely different results:
+STM performance for the small input set (as seen in Fig.~\ref{fig:evaluation:intruder}) is similar to the performance showcased in the reference measurements in Fig.~\ref{fig:evaluation:stamp}, although the curve shape is different, the Rust version showing a slow and steady increase in performance.
+The medium sized input set however, produces a rise so flat it almost becomes invisible due to the graph scaling.
+We suspect this to be caused by the slow reassembly phase of the benchmark, which operates on a shared HashMap.
+Even though we augmented the standard libraries' HashMap implementation with basic transaction handling capabilities like Minh et al.\ did, there is still a lot of contention on these shared data instances, impacting execution times.
+This assumption is supported by the immense amount of CPU time used by the STM implementation.
+Because of these long execution times for STM we did not attempt measurements for the significantly larger intruder++ input set.
+
+Ohua on the other hand achieves in both cases relatively good speedups of about 1.5 and 1.3 respectively, outperforming Software Transactional Memory.
+Particularly interesting is the performance plateau that is reached by Ohua for a medium amount of threads and which is best visible in the smallest input set.
+Source of this is the fact that a not insignificant portion of the algorithm runs sequentially in Ohua.
+Hence, only a certain speedup may be achieved by parallelizing the application, thus creating a plateau that transitions into declining performance later on when the framework overhead becomes too large.
+But as was the case with STM, the intruder+ version performs slightly worse than the smaller input set.\todo{why?}
+The aforementioned performance difference is also clearly seen in the use of CPU time which is shown in Figure~\ref{fig:evaluation:intruder-cpu}, where Ohua uses orders of magnitude less CPU time than STM.
+
+
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans-high_comb}
@@ -98,6 +125,18 @@ Duw to the fact that both result sets vary greatly, we opted to discard the orig
     \caption{CPU time used by both frameworks in the kmeans-high application.}%
     \label{fig:evaluation:kmeans-high-cpu}
 \end{figure}
+
+Our \emph{kmeans} results show no clear winner in terms of performance.
+Although there were differences in the performance behavior between the high contention and low contention versions of the STAMP benchmark, the Rust STM version in Figures~\ref{fig:evaluation:kmeans-high} and~\ref{fig:evaluation:kmeans-low} showcases similar curve shapes for both sets of input data which are completely different from the results in Fig.~\ref{fig:evaluation:stamp}.
+This is most likely due to differences in the implementations of both benchmark versions.
+C-based programs allow ways of memory sharing that are irreproducible in Rust, forcing us to change some aspects of the program, probably causing these differences.
+Overall, both benchmark sets show that there is no clear pattern for Ohua's performance with respect to the size of the input set.
+Each individual set of input data requires a specific number of iterations before the algorithm converges.
+In Software Transactional Memory this number is completely unpredictable, fluctuating due to the order in which the elements are processed, as floating point addition offers only a limited precision and is hence not commutative.
+Minor differences in the calculation of new centroids therefore can lead to missing the convergence threshold which in turn leads to more computations.
+Ohua does this in a fixed amount of iterations as it performs all additions deterministically.
+This becomes visible in Ohua's fairly level performance for each input set.
+As its determinism guarantees that the computations performed are always in the same order, stripped of any fluctuations caused by non-determinism, speedups and slowdowns mark where the framework either helps to improve performance or where it weighs down execution times.
 
 \begin{figure}
     \centering
@@ -113,12 +152,24 @@ Duw to the fact that both result sets vary greatly, we opted to discard the orig
     \label{fig:evaluation:kmeans-low-cpu}
 \end{figure}
 
+When comparing the utilized CPU times by both frameworks in Figs.~\ref{fig:evaluation:kmeans-high-cpu} and \ref{fig:evaluation:kmeans-low-cpu}, we see that Ohua uses a relatively steady amount of computation time throughout all measurements for kmeans, while STM needs linearly more computation times with increasing thread count.
+This can be attributed to an increased number of conflicts due to higher contention, the latter also showing in degrading speedups with increasing thread counts.
+All in all, Ohua is on par or outperforms Software Transactional Memory in the smaller two of both kmeans input sets and performs steadily for both large inputs, all while utilizing only a fraction of the CPU time STM needs, meaning it is also using significantly less energy to produce its results.
+
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome_comb}
     \caption{Speedup in the genome application relative to a sequential implementation.}%
     \label{fig:evaluation:genome}
 \end{figure}
+
+In \emph{genome}, the curve shapes of our STAMP results from Fig.~\ref{fig:evaluation:stamp} and the Rust STM in Fig.~\ref{fig:evaluation:genome} results are similar in the way that they exhibit peak performance for a medium amount of threads before it declines.
+What's striking is the difference in absolute speedups achieved by our Rust implementation.
+Likely causes for this include a by comparison more performant sequential implementation, which is possible as we developed these binaries independently from the other implementations which use one of the two frameworks while Minh et al.\ basically reuse the STM implementation, only removing any TM code from it.
+Alternatively, it could be because of higher framework overheads, wither within the \texttt{rust-stm} library itself or in our custom STM-ready data structures.
+Ohua manages to achieve clearly better speedups in all three test cases.
+The execution times remain relatively similar, indicating a steady amount or overhead, although we see an increasing CPU usage in Figure~\ref{fig:evaluation:genome-cpu}.
+But due to the large portions of still sequential code, i.e., the nucleotide sequence deduplication, no real gains can be made in terms of execution time.\todo{Clones als mögliche Ursache?}
 
 \begin{figure}
     \centering
