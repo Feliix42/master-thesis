@@ -55,7 +55,8 @@ We identified either a better sequential performance, increased framework overhe
 Due to the fact that both result sets vary greatly, we opted to discard the original results reported by Minh et al.\ in favor of using our own measurements as reference for our Rust-STM implementations.
 
 
-\section{Rust-based Benchmark Results}
+\section{Rust-based Benchmark Results}%
+\label{sec:evaluation:benchmarks}
 
 \begin{figure}
     \centering
@@ -178,178 +179,25 @@ But due to the large portions of still sequential code, i.e., the nucleotide seq
     \label{fig:evaluation:genome-cpu}
 \end{figure}
 
-%\begin{figure}
-    %\centering
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth}
-        %\caption{labyrinth}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth+}
-        %\caption{labyrinth+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth++}
-        %\caption{labyrinth++}%
-    %\end{subfigure}%
 
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth_cpu}
-        %\caption{cpu usage labyrinth}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth+_cpu}
-        %\caption{cpu usage labyrinth+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/labyrinth/labyrinth++_cpu}
-        %\caption{cpu usage labyrinth++}%
-    %\end{subfigure}%
-    %\caption{Results of the labyrinth benchmark.}%
-    %\label{fig:evaulation:labyrinth}
-%\end{figure}
+\section{Summary}%
+\label{sec:evaluation:summary}
 
-%\begin{figure}
-    %\centering
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder}
-        %\caption{intruder}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder+}
-        %\caption{intruder+}%
-    %\end{subfigure}%
-    %% ~
-    %% \begin{subfigure}[t]{.32\textwidth}
-    %%     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder++}
-    %%     \caption{intruder++}%
-    %% \end{subfigure}%
+In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times\footnote{This is not immediately visible in the speedup plots in chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
+Our achieved results are on par with those of STM in applications like the labyrinth benchmark, where isolating and exploiting state-free parallelism was relatively easy.\todo{Explain importance of TF2?}
+Technically, we also outperformed Software Transactional Memory in the intruder and genome benchmarks but as STM achieved in both cases subpar results, it should be evaluated whether the STM library used can be optimized for a performance comparable to the C-based implementation before judging about this.
 
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder_cpu}
-        %\caption{cpu usage intruder}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder+_cpu}
-        %\caption{cpu usage intruder+}%
-    %\end{subfigure}%
-    %% ~
-    %% \begin{subfigure}[t]{.32\textwidth}
-    %%     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder/intruder++_cpu}
-    %%     \caption{cpu usage intruder++}%
-    %% \end{subfigure}%
-    %\caption{Results of the intruder benchmark.}%
-    %\label{fig:evaulation:intruder}
-%\end{figure}
+With the kmeans and genome benchmarks, it became apparent that not all shared state applications offer the same amount of parallelism exploitable using the transformations we proposed in chapter~\ref{sec:transformations}.
+In fact, it became apparent that of the various forms of irregular applications tested, the one exhibiting amorphous data parallelism could be parallelized best: the labyrinth benchmark.
+It is the only one of the four algorithms we implemented that displays the characteristics of amorphous data parallelism we explained in chapter~\ref{sec:background:irregular:adp}.
+This may indicate that Ohua would be most effective when targeting this type of applications in particular, as our batching transformations presented in chapters~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} enable us to handle the state updates found in this type of applications.
+To verify this, future work should implement other programs from the STAMP suite that contain amorphous data parallelism such as the \emph{yada} and \emph{ssca2} algorithms.
+But even in the non-amorphous cases we tested Ohua on, we saw a significantly lower CPU usage, and by extension power consumption, for Ohua than for STM.
+The absence of contention in Ohua's model is the key reason for this conservation of resources.
 
-%\begin{figure}
-    %\centering
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome}
-        %\caption{genome}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome+}
-        %\caption{genome+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome++}
-        %\caption{genome++}%
-    %\end{subfigure}%
-
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome_cpu}
-        %\caption{cpu usage genome}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome+_cpu}
-        %\caption{cpu usage genome+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/genome/genome++_cpu}
-        %\caption{cpu usage genome++}%
-    %\end{subfigure}%
-    %\caption{Results of the genome benchmark.}%
-    %\label{fig:evaulation:genome}
-%\end{figure}
-
-%\begin{figure}
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high}
-        %\caption{kmeans-high}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high+}
-        %\caption{kmeans-high+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high++}
-        %\caption{kmeans-high++}%
-    %\end{subfigure}%
-
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high_cpu}
-        %\caption{cpu usage kmeans-high}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high+_cpu}
-        %\caption{cpu usage kmeans-high+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-high++_cpu}
-        %\caption{cpu usage kmeans-high++}%
-    %\end{subfigure}%
-    %\caption{Results of the kmeans-high benchmark.}%
-    %\label{fig:evaulation:kmeans-high}
-%\end{figure}
-
-%\begin{figure}
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low}
-        %\caption{kmeans-low}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low+}
-        %\caption{kmeans-low+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low++}
-        %\caption{kmeans-low++}%
-    %\end{subfigure}%
-
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low_cpu}
-        %\caption{cpu usage kmeans-low}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low+_cpu}
-        %\caption{cpu usage kmeans-low+}%
-    %\end{subfigure}%
-    %~
-    %\begin{subfigure}[t]{.32\textwidth}
-        %\includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans/kmeans-low++_cpu}
-        %\caption{cpu usage kmeans-low++}%
-    %\end{subfigure}%
-    %\caption{Results of the kmeans-low benchmark.}%
-    %\label{fig:evaulation:kmeans-low}
-%\end{figure}
+Overall, Ohua would indeed seem to be a promising replacement for STM-based shared state applications.
+While it is clearly not suited to be used for every type of shared state program, so is STM.
+Performance-wise Ohua will not always outperform Software Transactional Memory but manages to at least be on par with it, while yielding other positive properties like a deterministic execution model, often better energy efficiency, and easier to work with code bases due to the elimination of parallelism abstractions.
 
 % - present benchmark results -- maybe for the manual Ohua implementation as well, if results differ
 % - discuss why we perform better/worse at certain points
