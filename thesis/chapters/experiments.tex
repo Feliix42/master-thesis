@@ -74,6 +74,7 @@ The next sections will briefly outline the details of the chosen benchmarks and 
 
 % THEN elaborate further about the technical details that hold true for all benchmarks
 Since the authors only provided a C-based reference implementation for their programs, we had to re-implement them in Rust to rule out language-specific performance changes when comparing to Ohua's Rust implementation.
+We chose to use the \texttt{rust-stm} library written by Bergmann et al.~\cite{bergmann2020stm} for these implementations.
 Upon inspecting the original source code, it turned out that the authors adapted the code in order to improve the performance of STM in some benchmarks.
 For instance, they provided their own implementation of a \rust{HashMap}\footnote{A dynamic key-value store allowing fast lookups by hashing the keys and organizing them in different buckets.} that offered the use of transactions on a per-bucket basis, effectively exposing fine-granular parallelization opportunities that normal HashMaps cannot provide.
 In Rust, no corresponding STM-specific data structures existed prior to this work.
@@ -82,8 +83,11 @@ First, one could argue that these optimizations would be made by developers anyw
 Secondly, we wanted to remain as close as possible to the original implementations from Minh et al.\ in the hopes of achieving similar results for STM as they did.
 Therefore, we contributed a small library~\cite{wittwer2020stmdata} which provides data structures like HashMaps and HashSets augmented for the use with transactions.
 Both the library and the benchmarks were implemented from scratch based on the descriptions provided by the authors, literature they cited and the code they supplied.
-We did so in an idiomatic way, applying both concepts to the problems using the tools the frameworks and the STM data structure library provide natively.\todo{Link the rust-stm repository here -> which changes have i made?}
+We did so in an idiomatic way, applying both concepts to the problems using the tools the frameworks and the STM data structure library provide natively.
+The code for all benchmarks we wrote for this thesis may be found online~\cite{wittwer2020benchmarks}.
 
+When implementing the library benchmark, we found that two transactions may deadlock.
+We have reported this issue~\cite{wittwer2020stmissue} and resorted to forking and patching the library~\cite{wittwer2020stm} in question to move on with our tests.
 
 %TODO:
 %- explain why i chose bench xy
@@ -260,6 +264,12 @@ This was done in order to reduce potential noise from Operating System calls res
 Research has shown in the past that this noise, as well as different contention scenarios can severely impact the measured time values, leading to variations in the measured time values.
 To take this into account and produce more realistic results, each measurement has been done 30 times, to that statistical outliers do not carry as much weight.
 From the resulting measured values the geometric mean was calculated per data point to compile all measurements into a single data point.
+
+Using the measured execution times in Milliseconds, we calculated the speedup using the following definition:
+\[
+    S_c = \frac{t_{seq}}{t_f}
+\]
+where $S_c$ is the speedup of the configuration under investigation, $t_{seq}$ is the mean execution time of the sequential implementation and $t_f$ the mean execution time of the framework in question.
 
 \subsection{Running Configuration}
 \label{sec:experiments:measurements:hardware}

@@ -46,12 +46,13 @@ When setting a single-threaded run of any framework as baseline, one can only ma
     \label{fig:related:ohua-plots}
 \end{figure}
 
-Both plots show the results of the labyrinth+ benchmark as explained in chapter~\ref{sec:experiments:labyrinth} and evaluated in chapter~xy\todo{set reference to labyrinth results here}.
+Both plots show the results of the labyrinth+ benchmark as explained in chapter~\ref{sec:experiments:labyrinth} and evaluated in chapter~\ref{sec:evaluation:benchmarks}.
 Figure~\ref{fig:related:ohua-plots:orig} shows our original speedups, comparing both implementations to a seuential baseline implementation.
 Fig.~\ref{fig:related:ohua-plots:stm} on the other hand shows the same results but with the single-threaded STM run as baseline, nearly doubling the apparent speedups.
 Hence, to obtain realistic speedups and account for the potential overheads of various frameworks, it is favorable to compare against a sequential baseline.
 Swalens et al.\ probably decided against doing so as it would have required them to write a third, sequential version of their benchmarks.
 This demonstrates another strength of Ohua: Due to its implicit nature, any algorithm definition may simultaneously serve as sequential implementation by simply executing the application as-is, without invoking the Ohua compiler first.\todo{Kam in dem Paragraph gut genug raus, dass die Messwerte von den Autoren egal sind, weil komisch?}
+\todo{Messwerte Ohua/Chocola vergleichen? Falls nicht: schreiben, dass die Messwerte mangels gleicher Baseline nicht vergleichbar}
 
 A significant advantage of this approach is, that it allows the combination of several different concurrency models while offering well-defined and formalized semantics.
 This makes the development of complex software easier for developers as they do not have to put too much thought in the ramifications of this combination.
