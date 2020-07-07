@@ -10,7 +10,7 @@ Additionally, we will discuss the values measured during execution of the benchm
 \section{Benchmark Choice}
 \label{sec:experiments:choice}
 
-After presenting our transformations for Ohua in chapter~\ref{sec:transformations}, we now wanted to compare its performance against STM in order to evaluate if Ohua could indeed be used as a suitable replacement for developing parallel irregular applications.
+After presenting our transformations for Ohua in Chapter~\ref{sec:transformations}, we now wanted to compare its performance against STM in order to evaluate if Ohua could indeed be used as a suitable replacement for developing parallel irregular applications.
 To provide a comprehensive comparison, we chose to use the \emph{Stanford Transactional Applications for Multi-Processing} suite~\cite{minh2008stamp}.
 Introduced by Minh et al., it was designed as a set of benchmarks for testing software transactional memory frameworks.
 The authors included 8 applications from different application areas in their suite, which are supposed to resemble the diverse landscape of parallelism in applications developers might face.
@@ -37,8 +37,8 @@ In particular, the STAMP suite contains examples from different application doma
 The tables~\ref{tab:experiments:overview} and~\ref{tab:experiments:categorization} give a basic characterization of the benchmarks in terms of their usage of transactions.
 As can be seen in table~\ref{tab:experiments:overview}, the length of individual transactions varies greatly per application, as does the overall time that is spent by the benchmark executing transactions.
 Even though the numbers in the table have been adapted from Minh et al.\ and represent values measured for their C-based implementation, they still outline the general characteristics of an STM-based algorithm.
-Some applications suffer so badly from the irregular properties outlined in chapter~\ref{sec:background:irregular} that exploiting their parallelism requires them to spend more than 80 \% of their overall execution time in transactions.
-This is for example the case in the \emph{labyrinth} benchmark, where fields of a dense 3-dimensional matrix have to be continuously updated, as we explained in chapter~\ref{sec:preliminary:labyrinth}.
+Some applications suffer so badly from the irregular properties outlined in Chapter~\ref{sec:background:irregular} that exploiting their parallelism requires them to spend more than 80 \% of their overall execution time in transactions.
+This is for example the case in the \emph{labyrinth} benchmark, where fields of a dense 3-dimensional matrix have to be continuously updated, as we explained in Chapter~\ref{sec:preliminary:labyrinth}.
 Other applications such as \emph{kmeans} or \emph{ssca2} have relatively short transactions, meaning their data parallelism is easier to exploit or they generally do not feature as much opportunities for parallelism as other applications.
 
 \begin{table}
@@ -97,7 +97,7 @@ We have reported this issue~\cite{wittwer2020stmissue} and resorted to forking a
 \subsection{Labyrinth Path Mapping}
 \label{sec:experiments:labyrinth}
 
-The labyrinth benchmark we presented in chapter~\ref{sec:preliminaries:labyrinth} based on the work of Swalens et al.~\cite{swalens2016transactional} was originally proposed by Minh et al. as possible benchmark for Software Transactional Memory.
+The labyrinth benchmark we presented in Chapter~\ref{sec:preliminary:labyrinth} based on the work of Swalens et al.~\cite{swalens2016transactional} was originally proposed by Minh et al. as possible benchmark for Software Transactional Memory.
 Since we have already analyzed and implemented this application, it was apparent for us to adduce it for our concluding comparison.
 Additionally, is is one of very few\todo{check again if that's the case!} benchmarks in the suite exhibiting amorphous data parallelism, a trait the authors did not consider when compiling their benchmark list but which they happened to include by coincidence, as it is frequently encountered in real-life applications using shared state, the main use case for transactional memory applications.
 Another interesting property of the benchmark was its frequent use of transactions (the whole algorithm is executed within transactions) and the high contention on the shared data structure, which puts the synchronization primitives under heavy stress.
@@ -107,7 +107,7 @@ Another interesting property of the benchmark was its frequent use of transactio
 
 %The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
 %Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
-%Based of their algorithm description, we implemented the benchmark, as it has been described in chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
+%Based of their algorithm description, we implemented the benchmark, as it has been described in Chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
 %\todo{complete this: Ohua-Impl -> was ist parallel?, original perf \& expected perf}
 
 \subsection{Intruder Detection}
@@ -131,8 +131,8 @@ These flows can then finally be matched against known attack patterns, filtering
 \end{figure}
 
 While our STM implementation performs the steps two and three in parallel, in Ohua only the thirs step is parallelized by the compiler since the second step consists only of a loop that appends all inputs to a state value.
-Since the loop body does not contain any other state-free functions, no transformations from chapter~\ref{sec:transformations} may be applied.
-Step three however consists of a state-free loop where all inputs are checked for malicious data flows, something that can easily be optimized by applying transformation one as presented in chapter~\ref{sec:transformations:tf1}.
+Since the loop body does not contain any other state-free functions, no transformations from Chapter~\ref{sec:transformations} may be applied.
+Step three however consists of a state-free loop where all inputs are checked for malicious data flows, something that can easily be optimized by applying transformation one as presented in Chapter~\ref{sec:transformations:tf1}.
 This shows that Ohua may only extract parallelism from irregular applications that fit certain criteria, i.e., contain loops that do not only contain state-modifying operations, as its main approach is to exploit data parallelism by the use of certain transformations to uncover it.
 
 This benchmark was chosen because it is mostly similar in its properties to the labyrinth application as it also features short transactions and high contention on the shared data, but does only spend about 33 \% of the overall execution time in transactions.
@@ -286,7 +286,7 @@ Since then, hardware (e.g., clock speeds of CPUs) as well as compile-time optimi
 Hence, we decided to run the benchmarks relevant to our investigation again, on the same hardware and under the same conditions as our Rust benchmarks to have a reference we can compare our STM implementations to.
 Although the authors themselves only measured results for the smaller two of their three suggested input sets, we tested all three to have a more comprehensive set of results to compare our STM implementation against.\todo{ok?}
 
-Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in chapter~\ref{sec:introduction}.
+Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in Chapter~\ref{sec:introduction}.
 The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.
 We reported this issue~\cite{wittwer2020stampgenome} and employed a workaround to be able to use the benchmark nonetheless.
 Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash.\todo{report?}

@@ -46,7 +46,7 @@ When setting a single-threaded run of any framework as baseline, one can only ma
     \label{fig:related:ohua-plots}
 \end{figure}
 
-Both plots show the results of the labyrinth+ benchmark as explained in chapter~\ref{sec:experiments:labyrinth} and evaluated in chapter~\ref{sec:evaluation:benchmarks}.
+Both plots show the results of the labyrinth+ benchmark as explained in Chapter~\ref{sec:experiments:labyrinth} and evaluated in Chapter~\ref{sec:evaluation:benchmarks}.
 Figure~\ref{fig:related:ohua-plots:orig} shows our original speedups, comparing both implementations to a seuential baseline implementation.
 Fig.~\ref{fig:related:ohua-plots:stm} on the other hand shows the same results but with the single-threaded STM run as baseline, nearly doubling the apparent speedups.
 Hence, to obtain realistic speedups and account for the potential overheads of various frameworks, it is favorable to compare against a sequential baseline.
@@ -93,7 +93,7 @@ Interestingly, the framework only achieved good performances in benchmarks with 
 Overall, this type of automated approach to enhance lock-based code with speculation looks very promising.
 It allows the use of STM concepts within lock-based code, which enables developers to easily improve performance of their existing code.
 But this requires the use of lock-based code.
-The authors make the correct usage of locks a prerequisite in their work, although this is the hardest aspect of lock-based programming, as we discussed in chapter~\ref{sec:background:stm}.
+The authors make the correct usage of locks a prerequisite in their work, although this is the hardest aspect of lock-based programming, as we discussed in Chapter~\ref{sec:background:stm}.
 Therefore, an abstraction-free approach to concurrent programming, like Ohua, might be preferable to avoid having developers write locking code manually.
 
 \section{Heterogeneous Parallelism}

@@ -51,7 +51,7 @@ The algorithm terminates once the worklist is empty and all paths have either be
 This benchmark is a classic example for an \emph{irregular application}: all operations happen on the shared maze data structure which is modified in the process.
 Additionally, any data parallelism obtainable in the application is \emph{amorphous}, as mapping one path in the maze may render another pair of coordinates unroutable as both points get cut off from one another.
 An example for this can be seen in Fig.~\ref{fig:preliminary:labyrinth:unroutable}, where the mapping of the orange path makes finding a path between the green coordinates impossible as one point is part of the orange path.
-As we have learned in chapter~\ref{sec:background:irregular}, this specific class of problems can be parallelized easily using Software Transactional Memory.
+As we have learned in Chapter~\ref{sec:background:irregular}, this specific class of problems can be parallelized easily using Software Transactional Memory.
 Searching for a single path can be compartmented into a transaction, treating all maze fields as transaction variables.
 Listing~\ref{fig:preliminaries:stm} shows the resulting transactional implementation of the labyrinth benchmark.
 
@@ -106,12 +106,12 @@ Until all paths have either been mapped or discarded as unroutable, these steps 
 \end{listing}
 
 This implementation resembles an executable version of an Ohua algorithm that did compile and run with the initial Ohua compiler framework.\todo{Clarify distinction between Ohua versions: Which is default?}
-In contrast to the STM algorithm, the maze update has been moved out of the inner loop, since this operation should remain sequential, following Ohua's idea of fostering local state, as introduced in chapter~\ref{fig:background:ohua}.
+In contrast to the STM algorithm, the maze update has been moved out of the inner loop, since this operation should remain sequential, following Ohua's idea of fostering local state, as introduced in Chapter~\ref{fig:background:ohua}.
 
 % TODO: Maybe subsection?
 \subsection{First Results}
 
-To establish a baseline for performance comparison, we measured the execution time of both benchmarks and calculated the speedup in relation to a sequential implementation, as outlined in chapter~\ref{sec:experiments:measurements}.
+To establish a baseline for performance comparison, we measured the execution time of both benchmarks and calculated the speedup in relation to a sequential implementation, as outlined in Chapter~\ref{sec:experiments:measurements}.
 In an attempt to achieve comparable results, we used the same input data that had also been used previously by other authors and was originally proposed by Minh et al.~\cite{minh2008stamp}.
 The chosen input maze for our test run had a size of 128 $\times$ 128 $\times$ 5 cells and required the mapping of 128 paths, given as predefined coordinate pairs, into it.
 Resulting speedup figures for a varying number of worklist splits are shown in Fig.~\ref{fig:preliminaries:initial-results}.
@@ -136,7 +136,7 @@ In order to achieve more data parallelism and an overall improved performance, w
 We first wanted to introduce manual changes to the algorithm without making amendments to the compiler to test different approaches easily.
 These manual changes simply emulate the changes a compiler pass would make on the algorithm layer.
 After identifying the optimizations that indeed provide a performance boost, we generalized them into compiler optimizations applicable to all algorithms.
-The resulting transformations will be discussed in chapter~\ref{sec:transformations}.
+The resulting transformations will be discussed in Chapter~\ref{sec:transformations}.
 
 
 \section{Parallel Loop Implementation}%

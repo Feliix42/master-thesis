@@ -3,7 +3,7 @@
 \chapter{Results and Evaluation}
 \label{sec:evaluation}
 
-In this section, we will present and interpret the results of our experiments as presented in chapter~\ref{sec:experiments}.
+In this section, we will present and interpret the results of our experiments as presented in Chapter~\ref{sec:experiments}.
 This involves firstly a brief analysis of the results of the original STAMP benchmark to establish them as a baseline to legitimize or discuss the results of our Rust-based STM implementation of the algorithm as we will use the latter to evaluate Ohua's performance.\todo{Klingt bisschen als würde ich STM vs STM und dann das gegen Ohua vergleichen -> Umformulieren?}
 Subsequently, we will analyze the results of our Ohua benchmarks in detail to see, whether it could be used as a suiting replacement for STM in terms of performance.
 
@@ -20,7 +20,7 @@ Subsequently, we will analyze the results of our Ohua benchmarks in detail to se
     \label{fig:evaluation:stamp}
 \end{figure}
 
-Benchmark results for the runs we conducted can be found in Figure~\ref{fig:evaluation:stamp:genome}.
+Benchmark results for the runs we conducted can be found in Figure~\ref{fig:evaluation:stamp}.
 We will compare our achieved speedups to the original benchmark runs from Minh et al.~\cite{minh2008stamp}, namely to the results of their Eager STM implementation to see, how performance of the framework changes over the years.
 This allows us to set realistic expectations for the performance of our own STM-based benchmark implementations.
 
@@ -65,7 +65,7 @@ Due to the fact that both result sets vary greatly, we opted to discard the orig
     \label{fig:evaluation:labyrinth}
 \end{figure}
 
-We already discussed in detail the performance of the \emph{labyrinth} application for Ohua and STM that is shown in Fig.~\ref{fig:evaluation:labyrinth} in chapter~\ref{sec:preliminary}.
+We already discussed in detail the performance of the \emph{labyrinth} application for Ohua and STM that is shown in Fig.~\ref{fig:evaluation:labyrinth} in Chapter~\ref{sec:preliminary}.
 Notably, Ohua performs slightly worse than STM, but shows the same overall scaling behavior for more cores while exhibiting less variance in the results.
 For labyrinth++, one can not state clearly, which benchmark performs better due to the comparatively large variance in the STM results.
 The Software Transactional Memory implementation itself performs just as the original STAMP implementation by Minh et al.~\cite{minh2008stamp}, reinforcing the validity of our comparison.\todo{which comparison?????}
@@ -77,7 +77,7 @@ The Software Transactional Memory implementation itself performs just as the ori
     \label{fig:evaluation:labyrinth-cpu}
 \end{figure}
 
-When comparing the CPU time used by both Ohua and STM as shown in Figure~\ref{fig:evaulation:labyrinth-cpu}, we unsurprisingly see an overall growing demand for computation time as creating more threads and moving data between them in itself takes more time.
+When comparing the CPU time used by both Ohua and STM as shown in Figure~\ref{fig:evaluation:labyrinth-cpu}, we unsurprisingly see an overall growing demand for computation time as creating more threads and moving data between them in itself takes more time.
 Interestingly one can observe the correlation between the time spikes for both applications in the labyrinth+ benchmark and a degraded performance for the respective thread counts.
 Due to Ohua's algorithm structure, low thread counts become even less performant for smaller input sets, as fewer threads require more loops of the algorithm, creating a non-negligible runtime overhead.
 This becomes irrelevant for larger inputs such as labyrinth++, though.
@@ -183,13 +183,13 @@ But due to the large portions of still sequential code, i.e., the nucleotide seq
 \section{Summary}%
 \label{sec:evaluation:summary}
 
-In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times\footnote{This is not immediately visible in the speedup plots in chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
+In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times\footnote{This is not immediately visible in the speedup plots in Chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
 Our achieved results are on par with those of STM in applications like the labyrinth benchmark, where isolating and exploiting state-free parallelism was relatively easy.\todo{Explain importance of TF2?}
 Technically, we also outperformed Software Transactional Memory in the intruder and genome benchmarks but as STM achieved in both cases subpar results, it should be evaluated whether the STM library used can be optimized for a performance comparable to the C-based implementation before judging about this.
 
-With the kmeans and genome benchmarks, it became apparent that not all shared state applications offer the same amount of parallelism exploitable using the transformations we proposed in chapter~\ref{sec:transformations}.
+With the kmeans and genome benchmarks, it became apparent that not all shared state applications offer the same amount of parallelism exploitable using the transformations we proposed in Chapter~\ref{sec:transformations}.
 In fact, it became apparent that of the various forms of irregular applications tested, the one exhibiting amorphous data parallelism could be parallelized best: the labyrinth benchmark.
-It is the only one of the four algorithms we implemented that displays the characteristics of amorphous data parallelism we explained in chapter~\ref{sec:background:irregular:adp}.
+It is the only one of the four algorithms we implemented that displays the characteristics of amorphous data parallelism we explained in Chapter~\ref{sec:background:irregular:adp}.
 This may indicate that Ohua would be most effective when targeting this type of applications in particular, as our batching transformations presented in chapters~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} enable us to handle the state updates found in this type of applications.
 To verify this, future work should implement other programs from the STAMP suite that contain amorphous data parallelism such as the \emph{yada} and \emph{ssca2} algorithms.
 But even in the non-amorphous cases we tested Ohua on, we saw a significantly lower CPU usage, and by extension power consumption, for Ohua than for STM.

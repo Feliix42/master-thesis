@@ -11,15 +11,15 @@ When large portions of the data flow graph are sequential, it does not make sens
 Hence, future work should focus on identifying these sequential groups of operators at compile time and potentially fuse them into a single operator in the Ohua runtime, thus reducing the number of created threads.
 This could directly help to reduce overhead of the Ohua runtime while also addressing a problem that Cascaval et al.~\cite{cascaval2008software} put forth in their article as they argued that high framework overheads among other things make STM only suitable as \enquote{a research toy}.
 
-In chapter~\ref{sec:transformations} we presented a number of transformations for Ohua to conduct on Expression IR level.
+In Chapter~\ref{sec:transformations} we presented a number of transformations for Ohua to conduct on Expression IR level.
 We briefly discussed the correctness of our propositions but future work should also work to provide a formal proof for these transformations where possible in order to verify their properness.
 
-Using the transformation we presented in chapter~\ref{sec:transformations:tf15} we were able to uncover opportunities for implicit parallelism in applications by isolating state-free loops.
+Using the transformation we presented in Chapter~\ref{sec:transformations:tf15} we were able to uncover opportunities for implicit parallelism in applications by isolating state-free loops.
 Our results showed that this was key to improve Ohua's performance in applications exhibiting amorphous data parallelism but was not applicable to other irregular applications.
 Therefore, future work could investigate whether it is possible to extract more implicit parallelism opportunities from these non-amorphous irregular programs to allow Ohua to achieve better results in applications like \emph{kmeans} or \emph{genome}.
 We believe that further research in this direction can help us better understand the limits of Ohua and its model of implicit parallelism and local state as many of the targeted applications build heavily on shared state which hinders simple parallelization efforts.
 
-Another direction for future research should be the reinforcement of the results we saw in chapter~\ref{sec:evaluation:benchmarks}.
+Another direction for future research should be the reinforcement of the results we saw in Chapter~\ref{sec:evaluation:benchmarks}.
 The STAMP suite contains more applications with amorphous data parallelism like \emph{ssca2} and \emph{yada}, which should be implemented in Ohua to attempt to reproduce the performance we saw in the labyrinth benchmark.
 At the same time, one could also check, whether the rust-stm library~\cite{bergmann2020stm} used by us could be optimized to yield performances comparable to the C implementation in benchmarks like \emph{intruder} and \emph{genome}.
 

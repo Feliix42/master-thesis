@@ -3,7 +3,7 @@
 \chapter{Compiler Transformations}
 \label{sec:transformations}
 
-After discussing possible optimizations to the labyrinth algorithm in chapter~\ref{sec:preliminary}, we will now attempt to generalize the changes we made into transformations to be applied at compile time.
+After discussing possible optimizations to the labyrinth algorithm in Chapter~\ref{sec:preliminary}, we will now attempt to generalize the changes we made into transformations to be applied at compile time.
 The resulting transformations will be formally described and discussed in this chapter, using an Expression IR that is based on the lambda calculus.
 \todo{Maybe rewrite Introductory Passage}
 
@@ -65,7 +65,7 @@ The resulting transformations will be formally described and discussed in this c
     \label{fig:transformations:ir-first-stage}
 \end{figure}
 
-During compilation, the Ohua compiler framework parses algorithms provided as inputs into an Expression IR on which it then runs a number of optimizations, as we have shown in Figure~\ref{fig:background:ohua} in chapter~\ref{sec:background:ohua}.
+During compilation, the Ohua compiler framework parses algorithms provided as inputs into an Expression IR on which it then runs a number of optimizations, as we have shown in Figure~\ref{fig:background:ohua} in Chapter~\ref{sec:background:ohua}.
 We are going to describe our transformations in this intermediate representation, which we will therefore present now briefly.
 The Expression IR we use is based on the call-by-need lambda calculus~\cite{ariola1997lambda, ariola1995lambda} which prevents duplicated computations.\todo{Link io-paper here as we've used it there already?}
 Figure~\ref{fig:transformations:definition} defines our expression language, which is building atop the language used in previous research on Ohua optimizations~\cite{ertel2018compiling} by Ertel et al.
@@ -120,7 +120,7 @@ As a shorthand for writing more concise terms, we introduce a simple destructuri
     \label{fig:transformations:idiomatic}
 \end{listing}
 
-Using our defined calculus, we can now define an expression that describes our labyrinth benchmark from chapter~\ref{sec:preliminary:labyrinth}.
+Using our defined calculus, we can now define an expression that describes our labyrinth benchmark from Chapter~\ref{sec:preliminary:labyrinth}.
 As point of origin, we use an idiomatic declaration of the labyrinth algorithm which is more compact than any version in the aforementioned chapter and resembles the algorithm as it would be written by a developer.
 This version is shown in Listing~\ref{fig:transformations:idiomatic}.
 In the corresponding Lambda Expression in Fig.~\ref{fig:transformations:ir-first-stage} we bind the \texttt{fill} algorithm to a fixed-point combinator $f$.
@@ -133,7 +133,7 @@ The resulting partial binding is then mapped onto the list of input values, name
 \section{Map Parallelization}%
 \label{sec:transformations:tf1}
 
-The base idea of our first optimization developed in chapter~\ref{sec:preliminary:tf1} was to execute the path finding in parallel to make use of the multi-threading functionalities of modern commodity CPUs.
+The base idea of our first optimization developed in Chapter~\ref{sec:preliminary:tf1} was to execute the path finding in parallel to make use of the multi-threading functionalities of modern commodity CPUs.
 This was possible because the path-finding loop was altered to not contain any state update and the loop iterations themselves were therefore independent of one another.
 Since we want to have as few application logic as possible in the code generation and the runtime, it makes sense to move this optimization into the Expression IR optimization stage.
 To achieve a low-cost parallelization that does not require any knowledge about parallel loops in the runtime, we simply split the loop in question into a number of smaller loops.
@@ -214,13 +214,13 @@ On the other hand, when attempting to parallelize such an application for the fi
 \section{Batch Updates}%
 \label{sec:transformations:tf2}
 
-The second optimization we put forth in chapter~\ref{sec:preliminaries:retries} considered itself with improving execution times by batching state updates.
+The second optimization we put forth in Chapter~\ref{sec:preliminaries:retries} considered itself with improving execution times by batching state updates.
 Our general idea was that the state update forms a sequential bottleneck which severely decreases performance.
 After the application of the transformation described in section~\ref{sec:transformations:tf15} however, we found that the isolated state updates gave way to the negative side effects of applications exhibiting amorphous data parallelism which mainly manifested in increased write conflicts due to infrequent updates.
 Hence, we wanted to introduce a way to vary the frequency of state updates in order to have a way to reduce the number of conflicts.
 
 In our preliminary studies, we tackled this problem by only ever processing an arbitrary but fixed number of elements before updating the state.
-Although we mixed the retry semantics of the algorithm itself with the update frequency approach in chapter~\ref{sec:preliminaries:retries} by immediately appending any failed updates to the back of the work set instead of putting them in a separate list, we can distill a generic transformation from this approach.
+Although we mixed the retry semantics of the algorithm itself with the update frequency approach in Chapter~\ref{sec:preliminaries:retries} by immediately appending any failed updates to the back of the work set instead of putting them in a separate list, we can distill a generic transformation from this approach.
 Basic idea for this transformation is to turn the stateful loop into a recursive combinator that always takes up to $n$ elements per recursion step from the input set and processes them until all elements have been processed.
 To formalize this we let $n$ be the number of items to be processed per step.
 As for the previous transformation, $s$ defines the initial state value and is bound outside of the \texttt{map} expression, while $[x_1 \dots x_p]$ is the set of input values for the map operation.
@@ -254,7 +254,7 @@ But, as was the case for the transformation in section~\ref{sec:transformations:
 \section{Straggler Reduction using Work Stealing}%
 \label{sec:transformations:tf3}
 
-The third modification we presented in chapter~\ref{sec:preliminary} was the improving of resource utilization by tackling the straggler problem we discovered after parallelizing state-free map operations.
+The third modification we presented in Chapter~\ref{sec:preliminary} was the improving of resource utilization by tackling the straggler problem we discovered after parallelizing state-free map operations.
 Underlying cause for the straggler problem was the static assignment of work to specific threads.
 Due to the non-uniform nature of most map operations encountered in real-world applications and noise introduced by the operating system itself~\cite{lackorzynski2016decoupled}, static work set assignments can produce wildly varying execution times per thread, as seen in Fig.~\ref{fig:preliminary:straggler}.
 Hence, we applied a work-stealing task scheduling runtime to improve performance.
