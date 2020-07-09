@@ -2,3 +2,41 @@
 %
 \chapter{Introduction}
 \label{sec:introduction}
+
+At the beginning of the century, it became apparent that advancements in CPU architecture were hitting the power wall, meaning that clock speeds of single cores could no longer be increased without also increasing the power dissipation of the unit beyond the capabilities of consumer-grade cooling solutions.
+Multi-core architectures and technologies like Intel's hyperthreading soon emerged as possible solutions to this problem, making exploiting parallelism a viable option to improve performance.
+Since most programs modify state in some way, primitives that allow the safe sharing of such state became an important tool.
+
+\emph{Software Transactional Memory}~\cite{shavit1997software} is a framework that allows state sharing without exposing low-level mechanisms like locks to the developer, the use of which usually severely degrades the reliability of the resulting code.
+Instead, the framework allows the definition of so-called atomic blocks, code sections in which all changes made to shared data are either written successfully or not at all, similar to database transactions.
+This framework has now been an integral tool for state sharing for a while, yet it has a number of problems which became apparent to us upon inspecting and using the STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}:
+Even the code provided for some benchmarks does not always produce a correct result for the computation it implements, serving as example for how hard it is to correctly write a program using Software Transactional Memory.
+Worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues prove.
+Finally, even though Software Transactional Memory aimed to relief the programmer of the burden to manage locks manually, the framework itself may introduce deadlocks into the application, as we will see.
+Although this may be traced back to a bug within the framework itself this shows impressively that the implementation of this framework is indeed not trivial and that proving the correctness of the framework is hard.
+
+\emph{Ohua}~\cite{ertel2015ohua}, on the other hand, does not have these problems.
+Proposed by Ertel et al., the frameworks allows the creation of implicitly parallel programs.
+Using a number of transformations, parallelism is extracted from an otherwise sequential piece of code.
+The resulting dataflow graph is then translated into a runtime which exploits the found parallelism.
+Both of these steps can be checked for correctness relatively easily, leaving only the sequential code correctness to the developer.
+Its underlying deterministic model additionally ensures that sporadically arising bugs as observed in the STAMP suite cannot occur.
+Unfortunately, Ohua achieves most of its guarantees because it only fosters local state to avoid the need for locking.
+Thus, it is incapable of handling shared state as of now.
+
+In this thesis, we want to test the usability of Ohua in shared state applications.
+Therefore, we will look at the theoretical foundations of the framework to see, whether they allow an extension to shared state.
+In order to then properly evaluate Ohua in this context, we are going to compare its performance to that of STM, a well-established shared state programming framework, to see whether it could indeed be a suitable alternative to use for writing these applications.
+We make the following contributions:
+
+\begin{itemize}
+    \item TODO
+\end{itemize}
+
+The rest of this thesis is structured as follows:
+At first, we will introduce some basic notions and concepts necessary to understand this thesis as well as the motivation for possibly replacing STM in Chapter~\ref{sec:background}.
+Then, we will present our preliminary studies about whether or not Ohua's theoretical foundations allow shared state handling in Chapter~\ref{sec:preliminary}.
+The resulting amendments that have to be made to the Ohua compiler will be defined in chapter~\ref{sec:transformations} and applied manually to a set of benchmarks in Chapter~\ref{sec:experiments}.
+Chapter~\ref{sec:evaluation} will then evaluate and interpret the results of the benchmarks.
+Related work on other possible STM replacements is presented in Chapter~\ref{sec:related}.
+The thesis will then close with future work presented in Chapter~\ref{sec:future} before concluding in Chapter~\ref{sec:conclusion}.
