@@ -12,7 +12,7 @@ The aim of these preliminary studies was to find out, whether Ohua was usable fo
 \label{sec:preliminary:labyrinth}
 
 As a first example application, we chose to implement the \emph{labyrinth} benchmark as presented by Swalens et al.~\cite{swalens2016transactional}.
-This algorithm is a variation of Lee's Algorithm~\cite{lee1961algorithm} which solves path-connection problems often encountered when searching for an optimal route or generating wiring diagrams where wires may not overlap.
+This program is a variation of Lee's Algorithm~\cite{lee1961algorithm} which solves path-connection problems often encountered when searching for an optimal route or generating wiring diagrams where wires may not overlap.
 We base our own implementation on the descriptions of Watson et al.~\cite{watson2007study}, who presented an implementation for Transactional Memory.
 
 \begin{figure}[b]
@@ -53,7 +53,7 @@ Additionally, any data parallelism obtainable in the application is \emph{amorph
 An example for this can be seen in Fig.~\ref{fig:preliminary:labyrinth:unroutable}, where the mapping of the orange path makes finding a path between the green coordinates impossible as one point is part of the orange path.
 As we have learned in Chapter~\ref{sec:background:irregular}, this specific class of problems can be parallelized easily using Software Transactional Memory.
 Searching for a single path can be compartmented into a transaction, treating all maze fields as transaction variables.
-Listing~\ref{fig:preliminaries:stm} shows the resulting transactional implementation of the labyrinth benchmark.
+Listing~\ref{fig:preliminaries:stm} shows the resulting transactional implementation of the labyrinth benchmark using the \texttt{rust-stm} library~\cite{bergmann2020stm}.
 
 \begin{listing}[t]
     \begin{minted}[fontsize=\footnotesize]{Rust}
@@ -81,7 +81,7 @@ Inside the transaction that is started for each item (line 4), a working copy of
 Then, the breadth-first search commences in order to discover a route between the starting point and the target (line 7).
 Note that since we've made a copy of the grid beforehand, this happens completely locally.
 When a path is found, an update is run on the grid, inserting the path (line 9).
-Should another transaction, which also happened to alter one or more segments of the newly-found path, manage to commit in the meantime, the resulting conflict is detected and the transaction is rolled back and re-run until either the update commits successfully or no path can be found anymore.
+Should another transaction, which also happened to alter one or more segments of the newly-found path, manage to commit in the meantime, the resulting conflict is detected and the transaction rolled back and re-run until either the update commits successfully or no path can be found anymore.
 Our transactional memory implementation is a mere adaption of the algorithm outlined above, augmented with concurrency by splitting the worklist into $n$ parts, which are processed by $n$ threads in parallel.
 
 In our first Ohua implementation, we described idiomatically, what the algorithm should be doing.
@@ -105,13 +105,15 @@ Until all paths have either been mapped or discarded as unroutable, these steps 
     \label{fig:preliminaries:ohua1}
 \end{listing}
 
-This implementation resembles an executable version of an Ohua algorithm that did compile and run with the initial Ohua compiler framework.\todo{Clarify distinction between Ohua versions: Which is default?}
-In contrast to the STM algorithm, the maze update has been moved out of the inner loop, since this operation should remain sequential, following Ohua's idea of fostering local state, as introduced in Chapter~\ref{fig:background:ohua}.
+This implementation resembles an executable version of an Ohua algorithm that did compile and run on the initial Ohua compiler framework with Rust support\footnote{The Ohua version that fully integrates with the host language as described in Chapter~\ref{sec:background:ohua} did not exist when these preliminary studies were conducted and has been developed independently in parallel to this thesis.}~\cite{ertel2020ohuarustrt}.
+It deviated from the simple sequential implementation as well as STM's approach.
+But separating the update to the shared state from the search for paths was a deliberate choice to uncover parallelism opportunities for Ohua to begin with.
+We felt that this was a fair choice to make as it still describes the same algorithm as before, just slightly altered to match Ohua's current abilities and philosophy of fostering local state, as introduced in Chapter~\ref{fig:background:ohua}.
 
 % TODO: Maybe subsection?
 \subsection{First Results}
 
-To establish a baseline for performance comparison, we measured the execution time of both benchmarks and calculated the speedup in relation to a sequential implementation, as outlined in Chapter~\ref{sec:experiments:measurements}.
+To establish a baseline for performance comparison, we measured the execution time of both benchmarks and calculated the speedup in relation to a sequential implementation, as explained in greater detail in Chapter~\ref{sec:experiments:measurements}.
 In an attempt to achieve comparable results, we used the same input data that had also been used previously by other authors and was originally proposed by Minh et al.~\cite{minh2008stamp}.
 The chosen input maze for our test run had a size of 128 $\times$ 128 $\times$ 5 cells and required the mapping of 128 paths, given as predefined coordinate pairs, into it.
 Resulting speedup figures for a varying number of worklist splits are shown in Fig.~\ref{fig:preliminaries:initial-results}.
@@ -123,13 +125,13 @@ Resulting speedup figures for a varying number of worklist splits are shown in F
     \label{fig:preliminaries:initial-results}
 \end{figure}
 
-As one can see in the plot, Software Transactional Memory is able to achieve a logistic growth for its speedup for 1 to 24 worklist splits, which converges at a mean maximum speedup of about 4.3.
+As one can see in the plot, Software Transactional Memory is able to achieve a logistic growth in its speedup for 1 to 24 worklist splits, which converges at a mean maximum speedup of about 4.3.
 Ohua on the other hand recorded only a single measuring point for a run with no worklist splitting at all.
 This single run exhibited a speedup of less than 0.5, meaning it took more than twice as long to complete as the sequential reference implementation.
 The reason for this is the absence of any configuration options for e.g. worklist splits.
 Hence, there is no data parallelism in the Ohua algorithm, as the Rust runtime does not support parallel loops yet.
 Effectively, this single measurement shows the performance of a sequential algorithm executed with the Ohua runtime, revealing the overhead it has compared to a normal sequential implementation.
-Most of the overhead stems from the spawning of the threads each operator lives in and the resulting movement of data between these threads.\todo{Maybe produce a diagram showing the overhead in comparison?}
+Most of the overhead stems from the spawning of the threads each operator lives in and the resulting management and movement of data between these threads.\todo{[when time] Produce a diagram showing overhead in comparison}
 Our hope is to show that these overheads amortise with increased data parallelism.
 
 In order to achieve more data parallelism and an overall improved performance, we were looking for modifications that could be made to the Ohua algorithm to accomplish this.
@@ -143,12 +145,12 @@ The resulting transformations will be discussed in Chapter~\ref{sec:transformati
 \label{sec:preliminary:tf1}
 
 As Fig.~\ref{fig:preliminaries:initial-results} clearly showed, the most pressing issue with the existing Ohua implementation for Rust was the absence of any data parallelism facilities like parallel loops.
-Our first assumption based on these results was, that most performance could be gained simply by processing multiple labyrinth paths in parallel, as this operation makes up for most of the execution time in the sequential implementation.\todo{Show graphics that outline what takes how long. Take data from flamegraph}
+Our first assumption based on these results was, that most performance could be gained simply by processing multiple labyrinth paths in parallel, as this operation makes up for most of the execution time in the sequential implementation.
 The idea was to split the worklist into $n$ equally sized chunks and process them in parallel, which is similar to what STM does.
 Listing~\ref{fig:preliminaries:ohua2} shows an exemplary implementation for an algorithm splitting the worklist in two parts.
 Lines that were changed compared to the previous iteration are highlighted.
 
-\begin{listing}[b]
+\begin{listing}[t]
     \begin{minted}[fontsize=\footnotesize,highlightlines={2-10}]{Rust}
         fn fill(maze: Maze, to_map: Vec<(Point, Point)>) -> Maze {
             let (tm0, tm1) = splitup(to_map);
@@ -166,7 +168,7 @@ Lines that were changed compared to the previous iteration are highlighted.
             // recursively call `fill` as necessary
         }
     \end{minted}
-    \caption{Labyrinth implementation in Ohua using worklist splits for parallelism.}%
+    \caption{Labyrinth implementation in Ohua using worklist splits for parallelism. Highlighted parts have been added in this iteration.}%
     \label{fig:preliminaries:ohua2}
 \end{listing}
 
@@ -210,11 +212,11 @@ As described before, the labyrinth benchmark is designed to repeatedly attempt t
 In the sequential implementation, this is not an issue as each path is searched for and updated individually without any concurrency, guaranteeing that each coordinate pair will only ever be evaluated once.
 Any concurrent implementation however, comes at the cost of potential write conflicts that need to be resolved.
 STM for example uses $n$ threads, always working on finding $n$ paths in parallel which are then written to the maze.
-This means that from the perspective of one thread, in between its last access to the maze and an attempted update, about $n - 1$ changes will ideally have been made to the maze, each possibly introducing a conflict provoking a recomputation of the given path.
+This means that from the perspective of one thread, in between its last access to the maze and an attempted update, about $n - 1$ changes will ideally\footnote{Assuming that all theads proceed equally fast.} have been made to the maze, each possibly introducing a conflict provoking a recomputation of the given path.
 So at worst, per iteration of $n$ threads, $n-1$ results may become invalid due to a write conflict, forcing recomputation.\\
 For Ohua, this number is significantly higher.
 Its current approach is to update the shared state as late as possible, after computing all paths.
-The negative side effect of this is that in a run to map $p$ paths, $p-1$ results may require a recomputation per recursion step in the worst case, possibly leading to as much as $\sum_{0 \leq i < p} i$ conflicts, which may in part explain the bad performance of Ohua.\todo{Maybe add some data about retries? (Numbers for Ohua and STM)}
+The negative side effect of this is that in a run to map $p$ paths, $p-1$ results may require a recomputation per recursion step in the worst case, possibly leading to as much as $\sum_{0 \leq i < p} i$ conflicts, which may in part explain the bad performance of Ohua.
 
 The second relevant performance bottleneck is the straggler problem.
 In research, when reasoning about parallel tasks it is often assumed that all tasks perform uniformly, i.e., require the same time to complete.
@@ -222,14 +224,25 @@ Real applications however rarely fulfill this assumption.
 On the contrary, the tasks in these worklists are often wildly heterogeneous, each requiring a different amount of processing time.
 This is also the case in the labyrinth benchmark.
 The processing time for a single path depends solely on the number of nodes the path finder has to inspect which is related to the distance between the starting coordinates and the target.
-As result, the $n$ threads of our algorithm each take differently long to process their worklist, which means that all threads finishing their work earlier have to wait at the synchronization point for all slower threads to finish.
+As result, the $n$ threads of our algorithm each take differently long to process their worklist, which means that all threads finishing their work earlier have to wait at the synchronization point for the slower threads to finish.
 This forced slack time is also present in the STM algorithm implementation, yet not as severe as in the Ohua implementation, since it synchronizes all threads only once when terminating them, while Ohua's threads synchronize once per recursion step.
 
 
 \section{Lowering the Retry Count}
 \label{sec:preliminaries:retries}
 
-\begin{listing}[!b]
+Initially, we abandoned the idea of updating the maze after every state update in favor of a single update after processing all elements, to attempt solving the problem using only local state and a simple algorithm structure that still offers parallelism opportunities.
+Alas, these frequent updates are key to keep the execution time low because the quick propagation of changes ensures that fewer computations are carried out based on outdated information.
+Therefore, we altered the algorithm such that updates to the shared state are conducted after processing a fixed number of elements, which we will refer to as the \emph{update frequency} $f$.
+In our algorithm, which is shown in Listing~\ref{fig:preliminaries:ohua3}, this is reflected by introducing a new operator, \rust{take_n}.
+Making use of the existing recursion semantics, it caps the number of elements to process per step to at most $f$ elements (line 2).
+As before, all computations in a single step are conducted on the same state and updated all at once after finishing mapping the paths.
+Once the updates have been written to the maze or rejected due to a collision, the list of failed updates gets merged again with the rest of the worklist that has not been processed in this recursion step (line 14).
+Using this approach, the number of possibly denied state updates is dramatically reduced to only maximally $f - 1$ elements.
+With decreasing values for $f$, the overall probability of a write conflict is also reduced.
+%This has the side effect of reducing the overall probability of a write conflict occurring with decreasing values for $f$.
+
+\begin{listing}[t]
     \begin{minted}[fontsize=\footnotesize,highlightlines={2,14}]{Rust}
         fn fill(maze: Maze, to_map: Vec<(Point, Point)>, frequency: usize) -> Maze {
             let (points, still_to_map) = take_n(to_map, frequency);
@@ -249,25 +262,14 @@ This forced slack time is also present in the STM algorithm implementation, yet 
             // recursively call `fill` as necessary
         }
     \end{minted}
-    \caption{Ohua algorithm using a fixed update frequency to lower the number of write conflicts.}%
+    \caption{Ohua algorithm using a fixed update frequency to lower the number of write conflicts. Highlighted parts have been newly added in this iteration.}%
     \label{fig:preliminaries:ohua3}
 \end{listing}
 
-Initially, we abandoned the idea of updating the maze after every state update in favor of a single update after processing all elements, to attempt solving the problem using only local state and a simple algorithm structure.
-Alas, these frequent updates are key to keep the execution time low because the quick propagation of changes ensures that fewer computations are carried out based on outdated information.
-Therefore, we altered the algorithm such that updates to the shared state are conducted after processing a fixed number of elements, which we will refer to as the \emph{update frequency} $f$.
-In our algorithm, which is shown in Fig.~\ref{fig:preliminaries:ohua3}, this is reflected by introducing a new operator, \rust{take_n}.
-Making use of the existing recursion semantics, it caps the number of elements to process per step to at most $f$ elements (line 2).
-As before, all computations in a single step are conducted on the same state and updated all at once after finishing mapping the paths.
-Once the updates have been written to the maze or rejected due to a collision, the list of failed updates gets merged again with the rest of the worklist that has not been processed in this recursion step (line 14).
-Using this approach, the number of possibly denied state updates is dramatically reduced to only maximally $f - 1$ elements.
-With decreasing values for $f$, the overall probability of a write conflict is also reduced.
-%This has the side effect of reducing the overall probability of a write conflict occurring with decreasing values for $f$.
-
-\begin{figure}
+\begin{figure}[!b]
     \centering
     \includegraphics[width=.5\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/freq-128x128x5}
-    \caption{Performance of various iterations of the Ohua-frequency algorithm.}%
+    \caption{Performance of various configurations of the Ohua-frequency algorithm.}%
     \label{fig:preliminaries:frequencies}
 \end{figure}
 
@@ -278,8 +280,7 @@ We tested our implementation with varying update frequencies.
 The results are shown in Fig.~\ref{fig:preliminaries:frequencies}, which shows the performances for Ohua algorithms using a update frequency of 1, 2, 4, or 6 times the thread count, meaning that each thread will receive 1, 2, 4, or 6 work items.
 As the plot shows, it is better to keep the update frequency low, as we have speculated before.
 Best performance for larger thread counts is achieved by $f = threadcount$, although this run exhibited the worst speedup for smaller thread counts, probably due to the overhead we discussed as a potential limiting factor.
-Hence, we opted for using a frequency of $f = 2 \cdot threadcount$ as this configuration continuously shows an average to top performance in the pool of examined frequencies and we believe it provides the best trade-off between update conflicts and straggler performance penalties.
-\todo{Generalizability?}
+Hence, we opted for using a frequency of $f = 2 \cdot threadcount$ as this configuration continuously shows an average to top performance in the pool of examined frequencies and we believe it provides the best trade-off between update conflicts and straggler performance penalties for the current benchmark.
 
 
 \section{Improving Resource Utilization}
@@ -294,7 +295,7 @@ Work items are unordered and may be processed in any order and in parallel.
 Should a processor run out of work, it can \enquote{steal} work items from other queues to avoid idle time.
 This concept has also been implemented in software, usually providing a runtime consisting of a thread pool, a scheduler and a set of tasks.
 Fig.~\ref{fig:preliminary:straggler} sketches how this approach could reduce the slack time for all threads in a system by stealing work from the longest-running thread.
-By reducing the time all threads spend idling, the overall execution time and efficiency improve.
+By reducing the time all threads spend idling, the overall execution time and resource utilization improve.
 
 \begin{figure}[h]
     \begin{subfigure}[t]{.45\textwidth}
@@ -343,7 +344,7 @@ After collecting the results from the runtime (line 12), the algorithm will proc
             // recursively call `fill` as necessary
         }
     \end{minted}
-    \caption{Ohua algorithm using a work-stealing runtime to schedule its tasks.}%
+    \caption{Ohua algorithm using a work-stealing runtime to schedule its tasks. Highlighted sections have been altered or added in the current iteration.}%
     \label{fig:preliminaries:ohua4}
 \end{listing}
 
@@ -357,7 +358,7 @@ After collecting the results from the runtime (line 12), the algorithm will proc
 In employing this runtime, we hoped to reduce the slack time seen in our first parallel implementation by moving work away from the longer-running threads to ones that finished quicker.
 Figure~\ref{fig:preliminaries:future-results} confirms this.
 Ohua now manages to achieve a threefold speedup compared to a sequential implementation of the benchmark, closing in on STMs performance.
-It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.\todo{calculate standard deviation?}
+It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.\todo{[when time] calculate standard deviation/show scatter plot}
 The higher variance in STMs results is mainly due to the non-deterministic execution model, leading to a varying commit order for the mapped paths with each execution.
 This influences, which paths can be mapped successfully in a single run and how many write conflicts occur during execution which in turn has a direct effect on the predictability of the execution time.
 Ohua on the other hand is more deterministic.

@@ -3,7 +3,7 @@
 \chapter{Related Work}%
 \label{sec:related}
 
-Before Ohua, various other frameworks for parallel programming have been proposed that could serve as a replacement for \emph{Software Transactional Memory} to mitigate some of the shortcomings of the original proposal by Shavit et al.~\cite{shavit1997software}.
+Before Ohua, various other frameworks for parallel programming have been proposed that could serve as a replacement for \emph{Software Transactional Memory} in a shared state scenario to mitigate some of the shortcomings of the original proposal by Shavit et al.~\cite{shavit1997software}.
 This chapter will briefly present some of this related work.
 
 \section{Chocola: Combining multiple concurrency models}%
@@ -28,7 +28,7 @@ Nevertheless, it remains unclear how the authors achieved these measurements, as
 Judging from their references to previous work~\cite{swalens2016transactional, swalens2017transactional}, these speedups most likely refer to a single-threaded run of their STM implementation.
 But as McSherry et al.~\cite{mcsherry2015scalability} pointed out in their work, choosing the performance of another implementation as reference point gives no indication of the real performance of both approaches.
 In real application scenarios, parallelism is introduced to supercede an existing sequential implementation because the latter can usually only be optimized to a certain point before reaching its performance limit.
-When setting a single-threaded run of any framework as baseline, one can only make a speedup comparison between relative to other frameworks, leading to distorted speedups as can be seen in Fig.~\ref{fig:related:ohua-plots}.
+When setting a single-threaded run of any framework as baseline, one can only make a comparison between relative speedups to other frameworks, leading to distorted plots as can be seen in Fig.~\ref{fig:related:ohua-plots}.
 
 \begin{figure}[t]
     \begin{subfigure}[t]{.48\textwidth}
@@ -51,10 +51,10 @@ Figure~\ref{fig:related:ohua-plots:orig} shows our original speedups, comparing 
 Fig.~\ref{fig:related:ohua-plots:stm} on the other hand shows the same results but with the single-threaded STM run as baseline, nearly doubling the apparent speedups.
 Hence, to obtain realistic speedups and account for the potential overheads of various frameworks, it is favorable to compare against a sequential baseline.
 Swalens et al.\ probably decided against doing so as it would have required them to write a third, sequential version of their benchmarks.
-This demonstrates another strength of Ohua: Due to its implicit nature, any algorithm definition may simultaneously serve as sequential implementation by simply executing the application as-is, without invoking the Ohua compiler first.\todo{Kam in dem Paragraph gut genug raus, dass die Messwerte von den Autoren egal sind, weil komisch?}
-\todo{Messwerte Ohua/Chocola vergleichen? Falls nicht: schreiben, dass die Messwerte mangels gleicher Baseline nicht vergleichbar}
+This demonstrates another strength of Ohua: Due to its implicit nature, any algorithm definition may simultaneously serve as sequential implementation by simply executing the application as-is, without invoking the Ohua compiler first.
+But due to this bad baseline choice, we cannot compare our results to those Chocola achieves.
 
-A significant advantage of this approach is, that it allows the combination of several different concurrency models while offering well-defined and formalized semantics.
+A significant advantage of the authors' approach is, that it allows the combination of several different concurrency models while offering well-defined and formalized semantics.
 This makes the development of complex software easier for developers as they do not have to put too much thought in the ramifications of this combination.
 On the other hand side is this offering of multiple concurrency models also the frameworks' hugest disadvantage.
 Developers now don't have to learn how to correctly use one, but three different concepts with different guarantees attached.
@@ -71,7 +71,7 @@ This framework features an optimistic execution model and detects conflicts betw
 In this regard, it functions similar to Software Transactional Memory.
 But additionally, Software Lock Elision takes a best effort approach on its implementation:
 A fallback to acquiring locks without any speculation is possible, e.g., when the speculative state overflows the cache, when using nested locks or when performing an operation that only works non-speculatively (such as waiting for a condition variable).
-Roy et al.\ state that their system is only tailored towards workloads with high contention and a low number of conflicts, as only then using locks becomes a liability.\todo{Or: "too much overhead"?}
+Roy et al.\ state that their system is only tailored towards workloads with high contention and a low number of conflicts, as only then using locks becomes a liability, producing too much overhead.
 
 \begin{figure}
     \centering
@@ -81,13 +81,13 @@ Roy et al.\ state that their system is only tailored towards workloads with high
 \end{figure}
 
 As can be seen in Fig.~\ref{fig:related:sle}, their design features both the automatic and the manual use of SLE.
-A developer may either annotate their lock-based code to explicitly use Software Lock Elision at certain points or profile the locks in their binary and apply binary rewriting systems to add a SLE runtime to the application\footnote{In their work, Roy et al.\ discuss the design for an automated SLE runtime but left an actual implementation to future work. As of today, no follow-up work detailing an actual implementation has been provided.}.
+A developer may either annotate her lock-based code to explicitly use Software Lock Elision at certain points or profile the locks in her binary and apply binary rewriting systems to add a SLE runtime to the application\footnote{In their work, Roy et al.\ discuss the design for an automated SLE runtime but left an actual implementation to future work. As of today, no follow-up work detailing an actual implementation has been provided.}.
 The runtime is designed to retain maximal fairness towards non-speculative locks by prioritizing them over threads holding the same lock speculatively.
 The authors also tried to ensure the isolation between speculative and non-speculative work and to add support for application-specific lock types.
 
-To evaluate their work, Roy et al.\ implemented 6 out of 8 STAMP benchmarks\footnote{They reported 2 benchmarks, yada~\& bayes, to not run on their systems anymore.} using manually-annotated SLE code.
-For the kmeans, intruder and ssca2 benchmarks the authors reported speedups significantly higher than those of the original STM implementation.\todo{grafik hier?}
-However, the SLE runtime failed to achieve good results for genome, labyrinth and vacation, sometimes only reaching 25-50~\% of the STM speedup.
+To evaluate their work, Roy et al.\ implemented 6 out of 8 STAMP benchmarks\footnote{They reported 2 benchmarks, \emph{yada}~\& \emph{bayes}, to not run on their systems anymore.} using manually-annotated SLE code.
+For the \emph{kmeans}, \emph{intruder} and \emph{ssca2} benchmarks the authors reported speedups 1.5 to 2 times higher than those of the original STM implementation.
+However, the SLE runtime failed to achieve good results for \emph{genome}, \emph{labyrinth} and \emph{vacation}, sometimes only reaching 25-50~\% of the STM speedup.
 Interestingly, the framework only achieved good performances in benchmarks with short transactions and at most a medium amount of time spent in transactions, as can be seen in table~\ref{tab:experiments:categorization}.
 
 Overall, this type of automated approach to enhance lock-based code with speculation looks very promising.
@@ -100,7 +100,7 @@ Therefore, an abstraction-free approach to concurrent programming, like Ohua, mi
 \label{sec:related:manticore}
 Fluet et al.~\cite{fluet2007manticore} argue, that currently, no parallel programming language exists, that can be adequately used for general purpose programming, as most of these languages are tailored towards research purposes.
 Additionally, they lament the missing parallelism features in general purpose programming languages.
-In their opinion, parallel languages need to provide mechanisms for multiple levels of parallelism, since most applications exhibit parallelism at multiple levels that could be exploited for performance and since most commodity hardware achieves optimal performance only then exploiting these multiple parallelism levels (e.g., by employing both threads and SIMD parallelism).
+In their opinion, parallel languages need to provide mechanisms for multiple levels of parallelism, since most applications exhibit parallelism at multiple levels that could be exploited for performance and since most commodity hardware achieves optimal performance only when exploiting these multiple parallelism levels (e.g., by employing both threads and SIMD parallelism).
 In response, the authors propose \emph{Manticore}~\cite{fluet2007manticore, fluet2007status, fluet2009programming, fluet2010implicitly}, a parallel language for heterogeneous parallelism.
 
 The language belongs to the family of statically-typed strict functional languages and bases its concurrency mechanisms on Concurrent ML.
@@ -133,7 +133,7 @@ To efficiently harness the resulting parallel code, Manticore includes a continu
 Although Fluet et al.\ have been continuously working on Manticore and published several follow-up works, no benchmarks have been conducted with the language yet.
 Nonetheless is the author's proposition very interesting as it is also relying on finding and extracting implicit parallelism, like Ohua.
 Unfortunately, they only employ this idea for lower-level parallelism, leaving much of the parallelization effort to the developer, who may not be able to parallelize the code as efficient as automated approaches.
-Another shared approach with Ohua is the elimination of shared state, by which many types of errors in parallel code can be ruled out.\todo{Schlusssatz?}
+Another shared approach with Ohua is the elimination of shared state, by which many types of errors in parallel code can be ruled out.
 
 
 \section{Flexible Parallel Execution}%
@@ -150,22 +150,22 @@ Parcae was designed to circumvent that issue by allowing it to automatically tun
     \label{fig:related:parcae}
 \end{figure}
 
-These flexible parallel programs, as the authors call them, are generated by the Nona compiler, one of the three components comprising the Parcae framework, which as shown in Fig.~\ref{fig:related:parcae}.
+These flexible parallel programs, as the authors call them, are generated by the Nona compiler, one of the three components comprising the Parcae framework, which is shown in Fig.~\ref{fig:related:parcae}.
 The compiler takes a sequential program as input and identifies parallelizable regions within it by building a program dependence graph, to which some node reordering and regrouping operations are applied, which might require further annotations from the developer to highlight commutative operations.
 It then applies the parallelizing transforms to reach of these regions, although currently only loop nests are in scope for this step.
 Such transformations encompass data-parallel transforms with critical sections and pipeline transforms but developers may expand this list at their choosing.
-None then creates several tasks, each containing a loop body, which are marked either for parallel or sequential execution.
-The outputted program contains numerous hooks for profiling and a set of tasks which are to be executed.
+Nona then creates several tasks, each containing a loop body, which are marked either for parallel or sequential execution.
+The resulting program contains numerous hooks for profiling and a set of tasks which are to be executed.
 At runtime, the Morta executor takes care of executing the program and finding a parallelism configuration that is optimal for the execution environment.
 This happens by first executing a sequential version of the parallel regions and monitoring the execution using the third component, the Decima Monitor.
 Based on the gathered information, the execution scheme of the program is adjusted to optimize performance, which becomes a continuous process throughout the whole execution.
 
 To evaluate their work, Raman et al.\ chose applications from a variety of benchmark suites and implemented them using Parcae.
-In the kmeans benchmark, which was chosen as representative from the STAMP suite, Parcae was able to improve performance by about 42 \% compared to a baseline execution while only consuming 84 \% of the power a baseline implementation consumed.\todo{Compare power consumption to Ohua when having "definite" results}
+In the \emph{kmeans} benchmark, which was chosen as representative from the STAMP suite, Parcae was able to improve performance by about 42 \% compared to a baseline parallel execution while only consuming 84 \% of the power a baseline parallel implementation consumed.
 
 When comparing Parcae with Ohua, one can find many similarities in the languages approaches, although the initial motivation behind both concepts is different.
 One of the most prominent differences between both frameworks on the other hand is that Parcae requires much scheduler knowledge and has a high degree of dynamicity in the runtime, imposing non-negligible overheads during execution, which the authors also acknowledged.
 Ohua solves most of these issues as compile time by creating a runtime where data dependencies dictate when a tasks has to be executed sequentially or whether a parallel execution with other operators is possible.
 For scheduling, we currently mostly rely on the Operating System scheduler, avoiding costly reconfigurations at runtime.
 Also, we do not require annotations of any sort in the source code, but rather deduce all necessary information from the Data Flow Graph.
-
+While we do not achieve as good performance improvements for the \emph{kmeans} application, we manage to only use about 5-20 \% of the CPU time STM uses, indicating higher energy savings than reported for Parcae.

@@ -4,7 +4,8 @@
 \label{sec:background}
 
 In this chapter, we are going to introduce the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
-To better understand how one can make a well-founded comparison between both concepts, we will also introduce the class of \emph{Irregular Applications} as well as the term \emph{Amorphous Data Parallelism}.
+We will briefly present each frameworks' basic concepts as well as advantages and drawbacks to adduce for the following comparison.
+To better understand how one can make a well-founded comparison between both concepts, we will also introduce the class of \emph{Irregular Applications} as well as the term \emph{Amorphous Data Parallelism} since both describe important properties encountered in many shared state applications.
 We will also briefly discuss the difficulties that arise when reasoning about said application types and motivate, why further research into this topic could prove valuable.
 
 \section{Software Transactional Memory}
@@ -18,8 +19,8 @@ This results in a lack of composability, as combining several small lock-based m
 Even when written correctly, lock-based programs tend to quickly become hard to read and maintain due to the many rules that need to be enforced by the programmer herself without any external checks.
 Another problem is lock contention.
 If a lock is currently taken, all other threads seeking to acquire it have to wait.
-This opens up a new set of problems as frequent waiting leads to prolonged execution times and waiting threads can starve, should the thread fail to release the lock for any reason.
-Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, the resulting higher chance of an accidental deadlock and high contention.
+This opens up a new set of problems, as frequent waiting leads to prolonged execution times and waiting threads can starve, should the thread fail to release the lock for any reason.
+Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, resulting in a higher chance of an accidental deadlock, and high contention.
 
 \begin{figure}[h]
     \begin{subfigure}[h]{\textwidth}
@@ -71,10 +72,10 @@ Overall, STM takes an optimistic approach to parallelism, because it simply exec
 The result of this is an underlying non-determinism that ensues everytime transactions are employed in a multi-threaded environment.
 Problems in this strategy become apparent when applied to high-contention scenarios.
 Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
-Further shortcomings of this concept have been discussed in detail by Caşcaval et al.~\cite{cascaval2008software}.
-One the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics.
+Further shortcomings of this concept have been discussed in detail by Caşcaval et al.~\cite{cascaval2008software}:
+On the one hand, exception handling becomes impossible to do inside of a transaction without breaking its semantics.
 On the other hand, I/O operations cannot be transactionalized, as well as anything else that produces side effects outside of the transactions' scope as these effects may not be rolled back on error.
-Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes a specific situation nearly irreproducable.
+Additionally, they reported large overheads of STM applications for smaller worksets as well as no debuggability, since the non-determinism makes a specific situation nearly irreproducible.
 
 
 \section{Ohua}
@@ -98,19 +99,18 @@ It describes the part of a program that should be turned into a parallelized run
 In early versions~\cite{ertel2015ohua} these algorithms were written in separate files using a high-level language that closely resembled Lisp and OCaml.
 Over time, a Rust-like syntax~\cite{adam2019master} had also been added to allow for more imperative algorithm definitions.
 By now, algorithms are not separately defined anymore and instead are functions that are written in a host language which is supported by Ohua, such as Rust and Go.
-\todo{detail caveats: are there restrictions?}
-Ohua comes with a standalone compiler called \rust{ohuac}, which proceeds to parse the algorithm and transforms it eventually into an optimized dataflow graph.
-These optimizations stem from a number of transformations that are applied to the dataflow graph to uncover more parallelism opportunities.
+Ohua comes with a standalone compiler called \rust{ohuac}, which proceeds to parse the algorithm into an Expression IR, optimizes it and eventually transforms it into an optimized dataflow graph.
+These optimizations stem from a number of transformations that are applied to uncover more parallelism opportunities.
 A host language specific backend will then generate the runtime code based on the DFG.
 This runtime executes as regular part of the program it is embedded in when the algorithm is called.
-As such, it may import and use any function from the host code, allowing the developers seamless integration of their existing code into the new parallel algorithm.
+As such, it may import and use any function from the host code, allowing the developer seamless integration of her existing code into the new parallel algorithm.
 
 Ohua derives parallelism from executing independent nodes of the dataflow graph in parallel (task-level parallelism) and running multiple invocations of dependent nodes in a pipeline-parallel fashion.
 In order to rule out most of the common pitfalls in parallel programming, the use of shared state is forbidden in Ohua.
 Instead, data must be transferred explicitly by using arguments and function return values.
 This also rules out mutable global values which often represent state in programs.
 To still allow the convenient declaration of stateful algorithms, Ohua uses the concept of so-called \emph{stateful functions}~\cite{ertel2019stclang}.
-A stateful function is a host function that is associated with state values which it is allowed to modify.
+A stateful function is a host function that is associated with local state values which it is allowed to modify.
 Ohua encapsulates this operation and the associated state to ensure it is not leaked or used in a shared fashion.
 
 \begin{figure}[h]
@@ -152,21 +152,20 @@ To avoid \rust{get_message} being called too early, a control flow dependency is
 The result of Ohua's programming model is \emph{deterministic parallelism}, as opposed to Software Transactional Memory which aims to improve execution times by scheduling possibly conflicting operations for parallel execution, completely forfeiting any determinism in the process.
 Another advantage is the way in which Ohua is integrated into existing code bases.
 In its current version, algorithms are defined as normal functions within the code, allowing developers to first test their implementations without any parallelism before compiling them with Ohua.
-This offers the advantage of producing mostly\todo{remove "mostly" when adding no caveats above} framework agnostic code which can be easily reused in other applications as well.
-\todo{talk about guarantees compared to stm?}
+This offers the advantage of producing framework agnostic code which can be easily reused in other applications as well.
 
 Challenging however, is the ban the framework places on the use of shared state.
-As discussed in Chapter~\ref{sec:background:irregular}, many applications encountered in the real world are irregular and hence rely on the use of pointers and shared, global state.
-Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs, which the Software Transactional Memory framework caters towards.
+Many applications encountered in the real world rely on the use of pointers and shared, global state.
+Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs, which the Software Transactional Memory framework caters towards by design.
 
 
 \section{Irregular Applications}
 \label{sec:background:irregular}
 
-Providing a comprehensive comparison between STM and Ohua requires a selection of representative applications to test both systems on.
-But to make such a selection, one first has to understand, which features describe a parallel application and how these properties may influence the parallel behavior as well as the viability of certain parallelism frameworks.
+Providing a comprehensive comparison between STM and Ohua requires a selection of representative shared state applications to test both systems on.
+But to make such a selection, one first has to understand, which features describe such an application and how these properties may influence the parallel behavior as well as the viability of certain parallelism frameworks.
 In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
-There are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
+These are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
 As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.
 
 When looking at \emph{irregular applications} on the other hand, the situation is completely different.
@@ -192,9 +191,10 @@ But processing one element may generate an arbitrary number of new active elemen
 Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
 
 Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
-And because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
-This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.\todo{Kommt hier gut genug raus, warum diese Section hier in der Arbeit steht? Also: Zusammenhang ADP/IA klar?}
-As of now, it is unclear whether Ohua could also be used to parallelize Irregular Applications, offering an alternative besides STM for this type of applications where most other frameworks fail.
+Yet, most shared state applications are irregular applications by design, making this a large and interesting field of research.
+Because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
+This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.
+As of now, it is unclear whether Ohua could also be used to parallelize irregular applications, offering an alternative besides STM for this type of applications where most other frameworks fail.
 Since its approach relies heavily on compile-time analyses and optimizations, it may prove challenging to try to uncover good parallelism opportunities here.
 
 
@@ -213,7 +213,7 @@ It is a generalization of standard data parallelism in which
 These characteristics have already been briefly discussed in connection with Fig.~\ref{fig:background:irregular}.
 
 While irregular applications are hard to reason about due to their pointer usage, they are still a very interesting research topic, made more difficult by amorphous data parallelism.
-But as we will show in Chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications.
+But as we will show in Chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications using shared state.
 
 
 

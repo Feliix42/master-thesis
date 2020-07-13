@@ -6,7 +6,10 @@
 In this work, we put the Rust backend to the Ohua framework to test for the first time, to see whether it could be developed into a sustainable alternative to Software Transactional Memory.
 This chapter will list some interesting directions for future work we have discovered in this thesis.
 
-One of the first main discoveries we have made was that Ohua introduces overhead into the runtime that can become quite significant when an application only contains little parallelism to exploit.
+First and foremost, our work provided a theoretical description of four transformations that were only implemented manually for the benchmarks shown in the Chapters~\ref{sec:experiments} and~\ref{sec:evaluation}.
+Hence, as a first step these transformations should be incorporated in the compiler framework to allow further work building on them.
+
+One of the first main discoveries we have made was that Ohua introduces overheads into the runtime that can become quite significant when an application only contains little parallelism to exploit.
 When large portions of the data flow graph are sequential, it does not make sense to introduce a new operator for each of these sequential steps.
 Hence, future work should focus on identifying these sequential groups of operators at compile time and potentially fuse them into a single operator in the Ohua runtime, thus reducing the number of created threads.
 This could directly help to reduce overhead of the Ohua runtime while also addressing a problem that Cascaval et al.~\cite{cascaval2008software} put forth in their article as they argued that high framework overheads among other things make STM only suitable as \enquote{a research toy}.
@@ -14,19 +17,19 @@ This could directly help to reduce overhead of the Ohua runtime while also addre
 In Chapter~\ref{sec:transformations} we presented a number of transformations for Ohua to conduct on Expression IR level.
 We briefly discussed the correctness of our propositions but future work should also work to provide a formal proof for these transformations where possible in order to verify their properness.
 
-Using the transformation we presented in Chapter~\ref{sec:transformations:tf15} we were able to uncover opportunities for implicit parallelism in applications by isolating state-free loops.
+Using the Transformations 2 and 3 we presented in Chapter~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} we were able to uncover opportunities for implicit parallelism in applications by isolating state-free loops.
 Our results showed that this was key to improve Ohua's performance in applications exhibiting amorphous data parallelism but was not applicable to other irregular applications.
 Therefore, future work could investigate whether it is possible to extract more implicit parallelism opportunities from these non-amorphous irregular programs to allow Ohua to achieve better results in applications like \emph{kmeans} or \emph{genome}.
 We believe that further research in this direction can help us better understand the limits of Ohua and its model of implicit parallelism and local state as many of the targeted applications build heavily on shared state which hinders simple parallelization efforts.
 
 Another direction for future research should be the reinforcement of the results we saw in Chapter~\ref{sec:evaluation:benchmarks}.
-The STAMP suite contains more applications with amorphous data parallelism like \emph{ssca2} and \emph{yada}, which should be implemented in Ohua to attempt to reproduce the performance we saw in the labyrinth benchmark.
+The STAMP suite contains more applications with amorphous data parallelism like \emph{ssca2} and \emph{yada}, which should be implemented in Ohua to attempt to reproduce the performance we saw in the labyrinth benchmark and verify the applicability of our Transformations 2 and 3.
 At the same time, one could also check, whether the rust-stm library~\cite{bergmann2020stm} used by us could be optimized to yield performances comparable to the C implementation in benchmarks like \emph{intruder} and \emph{genome}.
 
 Finally, future work could discuss the question whether the STAMP benchmark suite is still adequate to use today.
 Many other researchers draw on these benchmarks when evaluating their work on transaction-related research or irregular applications.
 But as we have found, many of these applications today yield speedups below 1, even when using the original code base for testing.
-This raises the question whether ot actually still makes sense to use this suite as is.
+This raises the question whether it actually still makes sense to use this suite as is.
 Minh et al.\ prided themselves on having chosen real-world applications to compile STAMP, which is a good idea and the selection made sense back then as STM and HTM were indeed able to overcome the more limited clock speeds and speed up program execution.
 Today however, no one would use STM for most of these algorithms anymore, given the latest benchmark results.
 Hence, we propose that a new benchmark suite should be compiled, building on the principal idea of Minh et al.\ and potentially salvaging some of their applications.
