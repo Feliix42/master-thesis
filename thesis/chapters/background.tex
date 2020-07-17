@@ -3,7 +3,7 @@
 \chapter{Background and Motivation}%
 \label{sec:background}
 
-In this chapter, we are going to introduce the parallelism frameworks \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
+In this chapter, we are going to introduce both \emph{Software Transactional Memory} and \emph{Ohua} as a foundation for the following chapters.
 We will briefly present each frameworks' basic concepts as well as advantages and drawbacks to adduce for the following comparison.
 To better understand how one can make a well-founded comparison between both concepts, we will also introduce the class of \emph{Irregular Applications} as well as the term \emph{Amorphous Data Parallelism} since both describe important properties encountered in many shared state applications.
 We will also briefly discuss the difficulties that arise when reasoning about said application types and motivate, why further research into this topic could prove valuable.
@@ -14,12 +14,12 @@ We will also briefly discuss the difficulties that arise when reasoning about sa
 With the invention of multi-threaded programming, a need for synchronization primitives arose to allow safe parallelization of data-processing applications.
 Usually, locks have been used by developers to guard access to pieces of shared data.
 
-Lock-based programming however, has the fundamental drawback of easily producing deadlocks (i.e., a state where a number of threads may never again progress) when acquiring locks in the wrong order, forcing developers to employ great care when using them.
+Lock-based programming however, has the fundamental drawback of easily producing deadlocks (i.e., a state where a number of threads may never again progress) when acquiring locks in the wrong order, forcing developers to employ great care when using them~\cite{lee2006problem}.
 This results in a lack of composability, as combining several small lock-based modules into a larger program would require the imposition of some sort of ordering on the locks, which frequently leads to problems.
 Even when written correctly, lock-based programs tend to quickly become hard to read and maintain due to the many rules that need to be enforced by the programmer herself without any external checks.
 Another problem is lock contention.
 If a lock is currently taken, all other threads seeking to acquire it have to wait.
-This opens up a new set of problems, as frequent waiting leads to prolonged execution times and waiting threads can starve, should the thread fail to release the lock for any reason.
+This opens up a new set of problems, as frequent waiting leads to prolonged execution times.
 Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, resulting in a higher chance of an accidental deadlock, and high contention.
 
 \begin{figure}[h]
@@ -52,9 +52,11 @@ Mitigating contention issues forces developers to consider the trade-off between
 
 Hence, Shavit et al.~\cite{shavit1997software} proposed a concept called \emph{Software Transactional Memory}.
 This new approach to synchronization aimed to provide lock-free parallelism abstractions that allow multiple threads access to a shared variable without any form of blocking.
-Former critical sections are now regarded as \emph{transactions}: They are either executed in their entirety with all their changes taking effect simultaneously or are not executed at all, just like transactions in databases.
+Former critical sections are now regarded as \emph{transactions}, which operate similar to their namesake in databases: 
+They ensure atomicity, consistency and isolation for the code blocks they protect, only falling short in the durability databases offer, as this is not required for data residing in memory.
+Each transaction or atomic block, as they maybe also are referred to, ensures that the changes made in the guarded code block take all effect at once, eliminating possible race conditions.
 STM's operating principle is outlined in Figure~\ref{fig:background:stm} along with a code example in Fig.~\ref{fig:background:stmcode}.
-Every read and write operation to or from a piece of shared data is conducted inside a transaction block and gets initially saved to a local transaction log.
+Every read and write operation to or from a piece of shared data is conducted inside a transaction block and gets initially saved to a local transaction log, ensuring each transaction runs isolated.
 When the transaction block comes to an end, the changes made to individual shared data sections are committed.
 Therefore, the changes in the log are applied to the original shared values.
 In case another transaction managed to commit in the meantime to a value our transaction also touched, the conflict is detected and instead of committing the changes the transaction is aborted and restarted.
@@ -68,7 +70,7 @@ All transactions seem to execute serially, since the steps of one transaction ne
 Therefore, the results of an execution must be equal to the result of a serial execution.
 This has been formalized by Swalens et al.~\cite{swalens2016transactional} in their proposed operational semantics for a language with transactions.
 
-Overall, STM takes an optimistic approach to parallelism, because it simply executes numerous computations without any heuristics or reasoning in parallel, hoping for as few conflicts as possible.
+Overall, STM takes an optimistic approach~\cite{kulkarni2007optimistic} to parallelism, because it can be used to speculatively execute numerous computations in parallel without applying any heuristics or reasoning, hoping for as few conflicts as possible.
 The result of this is an underlying non-determinism that ensues everytime transactions are employed in a multi-threaded environment.
 Problems in this strategy become apparent when applied to high-contention scenarios.
 Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
@@ -81,12 +83,12 @@ Additionally, they reported large overheads of STM applications for smaller work
 \section{Ohua}
 \label{sec:background:ohua}
 
-As we have seen before, most frameworks for parallel programming offer developers certain abstractions or data structures such as threads, locks or transactions for them to use when developing parallel programs.
+As we have seen before, most solutions to state sharing in parallel programs offer developers certain abstractions or data structures such as locks or transactions for them to use when developing parallel programs.
 This however, forces programmers to think within the boundaries of their chosen tools and produces code that is tailored to a specific framework and therefore hard to migrate.
 
 A completely different approach has been taken by Ertel et al.~\cite{ertel2019dis} with the proposition of \emph{Ohua}, which is a framework that allows the development of implicitly parallel programs.
 It consists of three main components, as outlined in Fig.~\ref{fig:background:ohua}:
-\emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that interprets the algorithm and produces a parallelized version of it and a \emph{runtime} that will execute the parallel code.
+\emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that parses the algorithm and produces a parallelized version of it combined with a \emph{runtime} that will execute the parallel code.
 
 \begin{figure}[h]
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/background-ohua}
@@ -95,13 +97,13 @@ It consists of three main components, as outlined in Fig.~\ref{fig:background:oh
 \end{figure}
 
 An Ohua algorithm is what might come closest to the abstractions and tools used by other paradigms.
-It describes the part of a program that should be turned into a parallelized runtime.
+It describes the part of a program that should be parallelized.
 In early versions~\cite{ertel2015ohua} these algorithms were written in separate files using a high-level language that closely resembled Lisp and OCaml.
 Over time, a Rust-like syntax~\cite{adam2019master} had also been added to allow for more imperative algorithm definitions.
 By now, algorithms are not separately defined anymore and instead are functions that are written in a host language which is supported by Ohua, such as Rust and Go.
 Ohua comes with a standalone compiler called \rust{ohuac}, which proceeds to parse the algorithm into an Expression IR, optimizes it and eventually transforms it into an optimized dataflow graph.
 These optimizations stem from a number of transformations that are applied to uncover more parallelism opportunities.
-A host language specific backend will then generate the runtime code based on the DFG.
+A host language specific backend will then generate the parallel program together with the runtime code based on the DFG.
 This runtime executes as regular part of the program it is embedded in when the algorithm is called.
 As such, it may import and use any function from the host code, allowing the developer seamless integration of her existing code into the new parallel algorithm.
 
@@ -163,7 +165,7 @@ Since Ohua currently only fosters the use of local state with its stateful funct
 \label{sec:background:irregular}
 
 Providing a comprehensive comparison between STM and Ohua requires a selection of representative shared state applications to test both systems on.
-But to make such a selection, one first has to understand, which features describe such an application and how these properties may influence the parallel behavior as well as the viability of certain parallelism frameworks.
+But to make such a selection, one first has to understand, which features describe such an application and how these properties may influence the parallel behavior as well as the viability of certain frameworks used for state sharing.
 In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
 These are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
 As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.

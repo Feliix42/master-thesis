@@ -3,13 +3,15 @@
 \chapter{Introduction}
 \label{sec:introduction}
 
-At the beginning of the century, it became apparent that advancements in CPU architecture were hitting the power wall, meaning that clock speeds of single cores could no longer be increased without also increasing the power dissipation of the unit beyond the capabilities of consumer-grade cooling solutions.
+At the beginning of the century, it became apparent that advancements in CPU architecture were hitting the power wall.
+Clock speeds of single cores could no longer be increased without also increasing the power dissipation of the unit beyond the capabilities of consumer-grade cooling solutions.
 Multi-core architectures and technologies like Intel's hyperthreading soon emerged as possible solutions to this problem, making exploiting parallelism a viable option to improve performance.
 Since most programs modify state in some way, primitives that allow the safe sharing of such state became an important tool.
 
 \emph{Software Transactional Memory}~\cite{shavit1997software} is a framework that allows state sharing without exposing low-level mechanisms like locks to the developer, the use of which usually severely degrades the reliability of the resulting code.
 Instead, the framework allows the definition of so-called atomic blocks, code sections in which all changes made to shared data are either written successfully or not at all, similar to database transactions.
-This framework has now been an integral tool for state sharing for a while, yet it has a number of problems which became apparent to us upon inspecting and using the STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}:
+This framework has now been an integral tool for state sharing for a while, yet it has a number of problems that have been widely reported in research, such as a lack of scalability~\cite{perfumo2008limits} and too high framework overheads~\cite{cascaval2008software}.
+When we inspected and used STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}, we also encountered issues:\todo{noch mal bisschen Formulierungsarbeit investieren hier}
 Even the code provided for some benchmarks does not always produce a correct result for the computation it implements, serving as example for how hard it is to correctly write a program using Software Transactional Memory.
 Worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues prove.
 Finally, even though Software Transactional Memory aimed to relief the programmer of the burden to manage locks manually, the framework itself may introduce deadlocks into the application, as we will see.
@@ -27,10 +29,13 @@ Thus, it is incapable of handling shared state as of now.
 In this thesis, we want to test the usability of Ohua in shared state applications.
 Therefore, we will look at the theoretical foundations of the framework to see, whether they allow an extension to shared state.
 In order to then properly evaluate Ohua in this context, we are going to compare its performance to that of STM, a well-established shared state programming framework, to see whether it could indeed be a suitable alternative to use for writing these applications.
-We make the following contributions:
+We make the following contributions:\todo{Überarbeiten bzw ausbauen!}
 
 \begin{itemize}
-    \item TODO
+    \item Preliminary studies regarding the feasibility of applying Ohua to shared state scenarios where we tested, whether its theoretical foundations allow the introduction of parallelism in such applications.
+    \item Descriptions and definitions of transformations for the Ohua compiler to run on input algorithms to enable it to automatically extract parallelism from shared state applications.
+    \item A set of experiments where we applied Ohua to a number of such applications to test its performance in comparison to the STM framework.
+    % \item Updated benchmark results for
 \end{itemize}
 
 The rest of this thesis is structured as follows:

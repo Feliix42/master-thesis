@@ -31,6 +31,7 @@ This deviates from the original results, where both the labyrinth and the labyri
 The form of the curve and the overall reduced performance may indicate that either the sequential implementation is performing better now than it did back in 2008 or that the overhead of the \texttt{tl2} STM framework increased.
 Our first theory is backed as possible cause by the fact that compiler optimizations have improved in the past years along with CPU clock speeds, making a better sequential performance not unlikely.
 An increased framework overhead on the other hand would also support the performance drop for 16 threads, which the better sequential performance does not explain.
+This was also discussed previously by Perfumo et al.~\cite{perfumo2008limits} who reported similar performance drops for STM applications with higher thread counts.
 Another explanation for this decline would be our used hardware architecture, as it consists of two CPUs.
 While all runs up to 8 threads can be executed on a single CPU, the 16 thread version requires the utilization of both cores, requiring more complex memory and resource management which in turn takes more time and may also be an explanation since we do not know if Minh et al.\ had similar hardware.
 But since we only made this and the following measurements as reference points for the data we acquired in our own experiments, we did not investigate the causes for this behavior beyond speculations to possible reasons and will leave this to future work.
@@ -66,7 +67,7 @@ Due to the fact that both result sets vary greatly, we opted to discard the orig
     \label{fig:evaluation:labyrinth}
 \end{figure}
 
-We already discussed in detail the performance of the \emph{labyrinth} application for Ohua and STM, which is shown in Fig.~\ref{fig:evaluation:labyrinth}, in Chapter~\ref{sec:preliminary}.
+\paragraph{labyrinth.} We already discussed in detail the performance of the \emph{labyrinth} application for Ohua and STM, which is shown in Fig.~\ref{fig:evaluation:labyrinth}, in Chapter~\ref{sec:preliminary}.
 Notably, Ohua performs slightly worse than STM, but shows the same overall scaling behavior for more cores while exhibiting less variance in the results.
 For labyrinth++, one can not state clearly, which benchmark performs better due to the comparatively large variance in the STM results.
 The Software Transactional Memory implementation itself performs just as the original STAMP implementation by Minh et al.~\cite{minh2008stamp}, reinforcing the validity of our implementation.
@@ -98,7 +99,7 @@ This becomes irrelevant for larger inputs such as labyrinth++, though.
     \label{fig:evaluation:intruder-cpu}
 \end{figure}
 
-For the \emph{intruder} program, both frameworks deliver extremely different results:
+\paragraph{intruder.} For the \emph{intruder} program, both frameworks deliver extremely different results:
 STM performance for the small input set (as seen in Fig.~\ref{fig:evaluation:intruder}) is similar to the performance showcased in the reference measurements in Fig.~\ref{fig:evaluation:stamp}, although the curve shape is different, the Rust version showing a slow and steady increase in performance.
 The medium sized input set however, produces a rise so flat it almost becomes invisible due to the graph scaling.
 We suspect this to be caused by the slow reassembly phase of the benchmark, which operates on a shared HashMap.
@@ -129,7 +130,7 @@ The aforementioned performance difference is also clearly seen in the use of CPU
     \label{fig:evaluation:kmeans-high-cpu}
 \end{figure}
 
-Our \emph{kmeans} results show no clear winner in terms of performance.
+\paragraph{kmeans} Our \emph{kmeans} results show no clear winner in terms of performance.
 Although there were differences in the performance behavior between the high contention and low contention versions of the STAMP benchmark, the STM version written in Rust showcases in Figures~\ref{fig:evaluation:kmeans-high} and~\ref{fig:evaluation:kmeans-low} similar curve shapes for both sets of input data which are completely different from the results in Fig.~\ref{fig:evaluation:stamp}.
 This is most likely due to differences in the implementations of both benchmark versions.
 C-based programs allow ways of memory sharing that are irreproducible in Rust, forcing us to change some aspects of the program, probably causing these differences.
@@ -192,10 +193,13 @@ All in all, Ohua is on par or outperforms Software Transactional Memory in the s
     \label{fig:evaluation:genome}
 \end{figure}
 
-In \emph{genome}, the curve shapes of our STAMP results from Fig.~\ref{fig:evaluation:stamp} and the results from the STM version in Rust in Fig.~\ref{fig:evaluation:genome} are similar in the way that they exhibit peak performance for a medium amount of threads before it declines.
+\paragraph{genome.} In \emph{genome}, the curve shapes of our STAMP results from Fig.~\ref{fig:evaluation:stamp} and the results from the STM version in Rust in Fig.~\ref{fig:evaluation:genome} are similar in the way that they exhibit peak performance for a medium amount of threads before it declines.
 What's striking is the difference in absolute speedups achieved by our Rust implementation.
 Likely causes for this include a by comparison more performant sequential implementation, which is possible as we developed these binaries independently from the other implementations which use one of the two frameworks while Minh et al.\ basically reuse the STM implementation, only removing any TM and threading code from it.
-Alternatively, it could be because of higher framework overheads, either within the \texttt{rust-stm} library itself or in our custom STM-ready data structures.
+Alternatively, it could be because of higher overheads of the \texttt{rust-stm} library, for reasons we have outlined above.
+To test this theory, we profiled a STM \texttt{genome+} run using 8 threads and analyzed the resulting flamegraph~\cite{gregg2016flame}.
+We found that the cloning of data amounts for about 23,75 \% of the whole execution time of the benchmark\footnote{For this analysis we profiled the whole application execution. Of the overall execution time, only 46,06 \% of all samples were attributed to the execution of the benchmark itself. 10,94 \% of the total sample count were attributed to data cloning and also within the benchmark execution part of the program. Hence, roughly 23,75 \% of the benchmark execution time is spent duplicating data.}.
+While a more efficient library implementation using Rust's \emph{unsafe} features that allow circumventing certain safeguards could may help to improve performance, we deemed time-consuming improvements on a STM framework out of scope for this work.
 Ohua manages to achieve clearly better speedups in all three test cases.
 The execution times remain relatively similar, indicating a steady amount or overhead, although we see an increasing CPU usage in Figure~\ref{fig:evaluation:genome-cpu}, indicating the increasing framework overhead.
 But due to the large portions of still sequential code, i.e., the nucleotide sequence deduplication, no real performance gains can be made.
