@@ -54,7 +54,7 @@ Hence, Shavit et al.~\cite{shavit1997software} proposed a concept called \emph{S
 This new approach to synchronization aimed to provide lock-free parallelism abstractions that allow multiple threads access to a shared variable without any form of blocking.
 Former critical sections are now regarded as \emph{transactions}, which operate similar to their namesake in databases: 
 They ensure atomicity, consistency and isolation for the code blocks they protect, only falling short in the durability databases offer, as this is not required for data residing in memory.
-Each transaction or atomic block, as they maybe also are referred to, ensures that the changes made in the guarded code block take all effect at once, eliminating possible race conditions.
+Each transaction or atomic block, as they may also be referred to, ensures that the changes made in the guarded code block take all effect at once, eliminating possible race conditions.
 STM's operating principle is outlined in Figure~\ref{fig:background:stm} along with a code example in Fig.~\ref{fig:background:stmcode}.
 Every read and write operation to or from a piece of shared data is conducted inside a transaction block and gets initially saved to a local transaction log, ensuring each transaction runs isolated.
 When the transaction block comes to an end, the changes made to individual shared data sections are committed.
@@ -65,7 +65,7 @@ This is normally done until the transaction committed successfully.
 In our example in Fig.~\ref{fig:background:stm}, the transactions 1 and 2 both read the same value and modify it.
 But since the first transaction was able to commit earlier, the second transaction now stands in conflict and has to be aborted and scheduled for re-execution.
 
-As the example already shows, a fundamental benefit of the (Software) Transactional Memory model is its serializability~\cite{swalens2016transactional}:
+As the example already shows, a fundamental benefit of the Software Transactional Memory model is its serializability~\cite{swalens2016transactional}:
 All transactions seem to execute serially, since the steps of one transaction never appear to be interleaved with the steps of another transaction.
 Therefore, the results of an execution must be equal to the result of a serial execution.
 This has been formalized by Swalens et al.~\cite{swalens2016transactional} in their proposed operational semantics for a language with transactions.
@@ -84,9 +84,9 @@ Additionally, they reported large overheads of STM applications for smaller work
 \label{sec:background:ohua}
 
 As we have seen before, most solutions to state sharing in parallel programs offer developers certain abstractions or data structures such as locks or transactions for them to use when developing parallel programs.
-This however, forces programmers to think within the boundaries of their chosen tools and produces code that is tailored to a specific framework and therefore hard to migrate.
+However, this forces programmers to think within the boundaries of their chosen tools and produces code that is tailored to a specific framework and therefore hard to migrate.
 
-A completely different approach has been taken by Ertel et al.~\cite{ertel2019dis} with the proposition of \emph{Ohua}, which is a framework that allows the development of implicitly parallel programs.
+A completely different approach has been taken by Ertel et al.~\cite{ertel2019dis} with the proposition of \emph{Ohua}, which is a framework that allows for the development of implicitly parallel programs.
 It consists of three main components, as outlined in Fig.~\ref{fig:background:ohua}:
 \emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that parses the algorithm and produces a parallelized version of it combined with a \emph{runtime} that will execute the parallel code.
 

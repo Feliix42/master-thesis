@@ -20,7 +20,7 @@ We briefly discussed the correctness of our propositions but future work should 
 Using the Transformations 2 and 3 we presented in Chapter~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} we were able to uncover opportunities for implicit parallelism in applications by isolating state-free loops.
 Our results showed that this was key to improve Ohua's performance in applications exhibiting amorphous data parallelism but was not applicable to other irregular applications.
 Therefore, future work could investigate whether it is possible to extract more implicit parallelism opportunities from these non-amorphous irregular programs to allow Ohua to achieve better results in applications like \emph{kmeans} or \emph{genome}.
-We believe that further research in this direction can help us better understand the limits of Ohua and its model of implicit parallelism and local state as many of the targeted applications build heavily on shared state which hinders simple parallelization efforts.
+We believe that further research in this direction can improve the understanding for Ohua's limits as well as its model of implicit parallelism and local state as many of the targeted applications build heavily on shared state which hinders simple parallelization efforts.
 
 Another direction for future research should be the reinforcement of the results we saw in Chapter~\ref{sec:evaluation:benchmarks}.
 The STAMP suite contains more applications with amorphous data parallelism like \emph{ssca2} and \emph{yada}, which should be implemented in Ohua to attempt to reproduce the performance we saw in the labyrinth benchmark and verify the applicability of our Transformations 2 and 3.

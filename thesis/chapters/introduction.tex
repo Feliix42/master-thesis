@@ -6,19 +6,32 @@
 At the beginning of the century, it became apparent that advancements in CPU architecture were hitting the power wall.
 Clock speeds of single cores could no longer be increased without also increasing the power dissipation of the unit beyond the capabilities of consumer-grade cooling solutions.
 Multi-core architectures and technologies like Intel's hyperthreading soon emerged as possible solutions to this problem, making exploiting parallelism a viable option to improve performance.
-Since most programs modify state in some way, primitives that allow the safe sharing of such state became an important tool.
+However, this architectural change  led to a new set of problems:
+As many programs operate on large data structures throughout the whole execution, their concurrent execution can create data races which can only be mitigated by using primitives that allow safe state sharing.
+The first conceptually simple solution to this problem that found wide adoption was synchronization using locks.
+By guarding sensitive blocks of code with a lock, one can ensure that only a single thread may enter such a critical section at a time.
+But this method of synchronization has a number of drawbacks.
+For one, locks do not compose~\cite{lee2006problem}.
+When using several locks or combining multiple libraries exposing locks, developers can easily produce deadlocks, situations in which program execution comes to a halt and is unable to proceed.
+Also, locking is a pessimistic parallelism approach as the concept behind it assumes that under no circumstances two or more threads may enter the same critical section if data races could occur.
+Yet, many real-world applications are based around pointer-based data structures.
+Exploiting parallelism from these irregular applications using locks is highly inefficient~\cite{kulkarni2009much}, as often several threads could manipulate the data structure at the same time without conflicting, e.g., when working on a large tree-based data structure.
+Instead, a more optimistic approach to parallelism is needed for this type of problem.
 
-\emph{Software Transactional Memory}~\cite{shavit1997software} is a framework that allows state sharing without exposing low-level mechanisms like locks to the developer, the use of which usually severely degrades the reliability of the resulting code.
+\emph{Software Transactional Memory}~\cite{shavit1997software} is a framework that allows state sharing without exposing low-level mechanisms like locks to the developer.
 Instead, the framework allows the definition of so-called atomic blocks, code sections in which all changes made to shared data are either written successfully or not at all, similar to database transactions.
-This framework has now been an integral tool for state sharing for a while, yet it has a number of problems that have been widely reported in research, such as a lack of scalability~\cite{perfumo2008limits} and too high framework overheads~\cite{cascaval2008software}.
-When we inspected and used STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}, we also encountered issues:\todo{noch mal bisschen Formulierungsarbeit investieren hier}
-Even the code provided for some benchmarks does not always produce a correct result for the computation it implements, serving as example for how hard it is to correctly write a program using Software Transactional Memory.
-Worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues prove.
-Finally, even though Software Transactional Memory aimed to relief the programmer of the burden to manage locks manually, the framework itself may introduce deadlocks into the application, as we will see.
+Using this framework for concurrency control yields so-called speculative or optimistic parallelism~\cite{kulkarni2007optimistic} as several threads execute transactions on the same shared data structure, assuming no conflicts will occur.
+Should a conflict be detected, the transaction is simply rolled back and retried.
+This framework has now been an integral tool for state sharing for a while, yet it has a number of problems that have been widely reported in research.
+These include a lack of scalability~\cite{perfumo2008limits} and too high framework overheads~\cite{cascaval2008software}.
+When we inspected and used STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}, we also encountered issues:
+The code provided for some benchmarks does not always produce a correct result for the computation it implements, serving as an example for how hard it is to correctly write a program using Software Transactional Memory.
+Even worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues prove.\todo{Citation hier wäre nett}
+Finally, even though Software Transactional Memory aimed to relieve the programmer of the burden to manage locks manually, the framework itself may introduce deadlocks into the application, as will be shown in this thesis.
 Although this may be traced back to a bug within the framework itself this shows impressively that the implementation of this framework is indeed not trivial and that proving the correctness of the framework is hard.
 
 \emph{Ohua}~\cite{ertel2015ohua}, on the other hand, does not have these problems.
-Proposed by Ertel et al., the frameworks allows the creation of implicitly parallel programs.
+Proposed by Ertel et al., the framework allows for the creation of implicitly parallel programs.
 Using a number of transformations, parallelism is extracted from an otherwise sequential piece of code.
 The resulting dataflow graph is then translated into a runtime which exploits the found parallelism.
 Both of these steps can be checked for correctness relatively easily, leaving only the sequential code correctness to the developer.
@@ -28,7 +41,7 @@ Thus, it is incapable of handling shared state as of now.
 
 In this thesis, we want to test the usability of Ohua in shared state applications.
 Therefore, we will look at the theoretical foundations of the framework to see, whether they allow an extension to shared state.
-In order to then properly evaluate Ohua in this context, we are going to compare its performance to that of STM, a well-established shared state programming framework, to see whether it could indeed be a suitable alternative to use for writing these applications.
+In order to then properly evaluate Ohua in this context, we are going to compare its performance to the well-established shared state programming framework STM, to see whether it could indeed be a suitable alternative to use for this field of applications.
 We make the following contributions:\todo{Überarbeiten bzw ausbauen!}
 
 \begin{itemize}
@@ -39,7 +52,7 @@ We make the following contributions:\todo{Überarbeiten bzw ausbauen!}
 \end{itemize}
 
 The rest of this thesis is structured as follows:
-At first, we will introduce some basic notions and concepts necessary to understand this thesis as well as the motivation for possibly replacing STM in Chapter~\ref{sec:background}.
+Firstly, we will introduce some basic notions and concepts necessary to understand this thesis as well as the motivation for possibly replacing STM in Chapter~\ref{sec:background}.
 Then, we will present our preliminary studies about whether or not Ohua's theoretical foundations allow shared state handling in Chapter~\ref{sec:preliminary}.
 The resulting amendments that have to be made to the Ohua compiler will be defined in chapter~\ref{sec:transformations} and applied manually to a set of benchmarks in Chapter~\ref{sec:experiments}.
 Chapter~\ref{sec:evaluation} will then evaluate and interpret the results of the benchmarks.
