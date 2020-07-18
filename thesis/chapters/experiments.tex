@@ -5,6 +5,7 @@
 
 In order to compare the performance of Software Transactional Memory against Ohua in the context of shared state applications, we employ a set of benchmarks originally proposed by Minh et al.~\cite{minh2008stamp}.
 In this chapter, we will categorize the benchmarks introduced by the authors and present a representative selection of applications which we will use to compare Ohua's performance against STM.
+To be able to better understand the behavior of the different implementations later on, we will briefly analyze, where each application has potential for parallelization and how this could be leveraged using Ohua and STM.
 Additionally, we will explain, which values we measured during execution of the benchmarks and how they are relevant for our evaluation.
 
 \section{Benchmark Choice}
@@ -100,7 +101,7 @@ We have reported this issue~\cite{wittwer2020stmissue} and resorted to forking a
 
 The labyrinth benchmark we presented in Chapter~\ref{sec:preliminary:labyrinth} based on the work of Swalens et al.~\cite{swalens2016transactional} was originally proposed by Minh et al. as possible benchmark for Software Transactional Memory.
 Since we have already analyzed and implemented this application, it was apparent for us to adduce it for our concluding comparison.
-Additionally, it is one of very few benchmarks in the suite exhibiting amorphous data parallelism, a trait the authors did not consider when compiling their benchmark list but which they happened to include by coincidence, as it is frequently encountered in real-life applications using shared state, the main use case for transactional memory applications.
+Additionally, it is one of few benchmarks in the suite exhibiting amorphous data parallelism, a trait the authors did not consider when compiling their benchmark list but which they happened to include by coincidence, as it is frequently encountered in real-life applications using shared state, the main use case for transactional memory applications.
 Another interesting property of the benchmark was its frequent use of transactions (the whole algorithm is executed within transactions) and the high contention on the shared data structure, which puts the synchronization primitives under heavy stress, as described before.
 
 

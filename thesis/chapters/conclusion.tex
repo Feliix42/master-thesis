@@ -6,17 +6,24 @@
 The Ohua framework presents a novel approach to writing parallel programs.
 By relieving the developer of the burden of having to use abstractions for introducing parallelism into the program, she is able to produce concise and less complex algorithms which are easier to maintain and verify.
 Parallelism is instead introduced into the application by the Ohua compiler itself, which extracts it from the algorithm using a set of transformations.
-State sharing however poses a challenge for Ohua, as its programming model only fosters local state as shared state would require a form of synchronization between threads.
+State sharing however poses a challenge for Ohua, as its programming model only fosters local state and offers no synchronization primitives whatsoever.
 
-In this thesis, we have shown that the framework may also be used for implementing shared state applications.
+In this thesis, we have shown that the framework nonetheless may also be used for implementing shared state applications.
 After showing that Ohua is able to extract non-trivial parallelism from such a program in a preliminary study, we proposed a set of compiler transformations that could help leverage parallelism in stateful loop operations which are often encountered in shared state environments.
 Using these transformations, we implemented a selection of benchmarks from the STAMP benchmark suite.
 We chose a representative subset of applications based on the authors' categorization and used them to compare Ohua against Software Transactional Memory, a widely adopted framework for writing shared state applications.
 Our benchmark results showed that Ohua could indeed be a viable alternative to STM.
 Its performance was widely on par with STM, although results varied per application, while offering advantages in terms of code conciseness and verifiability.
-We found that in many shared state applications we examined Ohua is unable to break up loops using shared state to exploit parallelism beyond state-free loops, as these loops are often just consisting of state modifications.
-STM is able to break these patterns up using its speculative nature, yet Ohua's determinism and reduced contention compensated this drawback in our analysis.
-The most performance gains and the best scaling behavior for Ohua were seen in applications exhibiting amorphous data parallelism.
-Hence, we hypothesize that programs with this property would benefit the most from the transformations we put forth.
+We found that in many examined shared state applications Ohua is unable to break up loops using shared state to exploit parallelism beyond state-free loops, as these loops are often just consisting of state modifications.
+STM is able to break these patterns up using its speculative nature, but often at the cost of many retried computations.
+Ohua's determinism and reduced contention reduced the applications' execution times, managing to compensate the missing parallelism in these sections.
+However, the most performance gains and the best scaling behavior for Ohua were seen in applications exhibiting amorphous data parallelism.
+As these programs change their behavior when parallelizing them anyway, Ohua may apply slightly more aggressive transformations, allowing it to extract more parallelism than in non-amorphous applications.
+Hence, we hypothesize that Ohua will be the most effective when used on amorphous data parallel shared state applications.
 
-Future work should mainly focus on proving the correctness of the proposed transformations while also examining our hypothesis regarding Ohua's performance in amorphous data parallel programs.
+Future work should mainly focus on validating this theory while also proving the formal correctness of our proposed transformations.
+
+
+% Hence, we hypothesize that programs with this property would benefit the most from the transformations we put forth.
+
+% Future work should mainly focus on proving the correctness of the proposed transformations while also examining our hypothesis regarding Ohua's performance in amorphous data parallel programs.

@@ -357,13 +357,13 @@ After collecting the results from the runtime (line 12), the algorithm will proc
 
 In employing this runtime, we hoped to reduce the slack time seen in our first parallel implementation by moving work away from the longer-running threads to ones that finished quicker.
 Figure~\ref{fig:preliminaries:future-results} confirms this.
-Ohua now manages to achieve a threefold speedup compared to a sequential implementation of the benchmark, closing in on STMs performance.
+Ohua now manages to achieve a threefold speedup compared to a sequential implementation of the benchmark, closing in on STM's performance.
 It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.\todo{[when time] calculate standard deviation/show scatter plot}
-The higher variance in STMs results is mainly due to the non-deterministic execution model, leading to a varying commit order for the mapped paths with each execution.
+The higher variance in STM's results is mainly due to the non-deterministic execution model, leading to a varying commit order for the mapped paths with each execution.
 This influences, which paths can be mapped successfully in a single run and how many write conflicts occur during execution which in turn has a direct effect on the predictability of the execution time.
 Ohua on the other hand is more deterministic.
 All paths are mapped in parallel, but they are merged in the same order they were in before being processed, yielding reproducible results that can be easily debugged and do not underlie a similarly high deviation.
-Due to the scattering of STMs results, one can not with definitive certainty say whether it indeed outperforms Ohua for every thread count value as the variances sometimes overlap, e.g., for 11, 13 and 15 threads.
+Due to the scattering of STM's results, one can not with definitive certainty say whether it indeed outperforms Ohua for every thread count value as the variances sometimes overlap, e.g., for 11, 13 and 15 threads.
 
 All in all, these preliminary studies showed that in irregular applications, Ohua can achieve performances similar to Software Transactional Memory if the right transformations are applied to the algorithm.
 This warrants further investigation by trying to find generalized dataflow graph transformations which can be applied to Ohua algorithms in order to boost their performance at runtime.

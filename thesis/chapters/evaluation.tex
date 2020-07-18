@@ -87,14 +87,14 @@ This becomes irrelevant for larger inputs such as labyrinth++, though.
 
 \begin{figure}
     \centering
-    \includegraphics[width=.66\textwidth,keepaspectratio]{gfx/results/intruder_comb}
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/intruder_comb}
     \caption{Speedup in the intruder application relative to a sequential implementation.}%
     \label{fig:evaluation:intruder}
 \end{figure}
 
 \begin{figure}
     \centering
-    \includegraphics[width=.66\textwidth,keepaspectratio]{gfx/results/cpu_intruder_comb}
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_intruder_comb}
     \caption{CPU time used by both frameworks in the intruder application.}%
     \label{fig:evaluation:intruder-cpu}
 \end{figure}
@@ -105,14 +105,14 @@ The medium sized input set however, produces a rise so flat it almost becomes in
 We suspect this to be caused by the slow reassembly phase of the benchmark, which operates on a shared HashMap.
 Even though we augmented the standard libraries' HashMap implementation with basic transaction handling capabilities like Minh et al.\ did, there is still a lot of contention on these shared data instances, impacting execution times.
 This assumption is supported by the immense amount of CPU time used by the STM implementation.
-Because of these long execution times for STM we did not attempt measurements for the significantly larger intruder++ input set.
+Because of these long execution times for STM we only measured Ohua's speedups for the significantly larger intruder++ input set.
 
-Ohua on the other hand achieves in both cases relatively good speedups of about 1.5 and 1.3 respectively, outperforming Software Transactional Memory.
+Ohua on the other hand achieves in both smaller cases relatively good speedups of about 1.5 and 1.3 respectively, outperforming Software Transactional Memory.
 Particularly interesting is the performance plateau that is reached by Ohua for a medium amount of threads and which is best visible in the smallest input set.
 Source of this is the fact that a not insignificant portion of the algorithm runs sequentially in Ohua.
 Hence, only a certain speedup may be achieved by parallelizing the application, thus creating a plateau that transitions into declining performance later on when the framework overhead becomes too large.
-But as was the case with STM, the intruder+ version performs slightly worse than the smaller input set.
-This can be attributed to the increased size of the input set, which takes longer to process during the sequential flow reassembly phase, impairing the speedup achieved by the parallel detection phase.
+But as was the case with STM, the intruder+ version performs slightly worse than the smaller input set and Ohua's intruder++ results are even worse, below 1.0.
+This can be attributed to the increasing sizes of the input set, which take longer to process during the sequential flow reassembly phase, impairing the speedup achieved by the parallel detection phase.
 The aforementioned performance difference is also clearly seen in the use of CPU time which is shown in Figure~\ref{fig:evaluation:intruder-cpu}, where Ohua uses orders of magnitude less CPU time than STM.
 
 

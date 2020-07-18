@@ -18,7 +18,7 @@ An implementation of the presented transformations will be left for future work.
         & $|$ & $t\ t$ & application\\
         & $|$ & \texttt{let} $x = t$ \texttt{in} $t$ & lexical scope (variable binding)\\
         & $|$ & \texttt{if}$(t\ t\ t)$ & conditionals\\
-        & $|$ & \texttt{let} $f = \lambda x.t$ \texttt{in} & fixed-point combinator\\
+        & $|$ & \texttt{let} $f = \lambda x.t$ \texttt{in} $t$ & fixed-point combinator\\
         & $|$ & $\texttt{ff}_f (x_1 \dots x_n)$ & apply the free foreign function $f$ to $x_1 \dots x_n$\\
         &&& with $n \geq 0$.\\
         & $|$ & $\texttt{sf}_f (s\ x_1 \dots x_n)$ & apply the state-modifying foreign function $f$\\
@@ -35,9 +35,9 @@ An implementation of the presented transformations will be left for future work.
         \texttt{map}$(\lambda x.t\ [ v_1 \dots v_n ])$ & $\equiv$ & $[ (\lambda x.t)\ v_1\ \dots \ (\lambda x.t)\ v_n ]$\\
                                                        && given that $\texttt{sf}_f \notin t$\\
                                                        &&\\
-        \multirow{4}{*}{\texttt{map}$(\lambda s_0\ x.t\ [ v_1 \dots v_n ])$} & \multirow{4}{*}{$\equiv$} & $\texttt{let } s_1\ y_1 = f\ s_0\ v_1 \texttt{ in}$\\
+        \multirow{4}{*}{\texttt{map}$(\lambda s_0\ x.t\ [ v_1 \dots v_n ])$} & \multirow{4}{*}{$\equiv$} & $\texttt{let } s_1\ y_1 = (\lambda s_0\ x.t)\ v_1 \texttt{ in}$\\
                                                             && \hspace*{.3cm}$\dots$\\
-                                                            && \hspace*{.6cm}$\texttt{let } s_n\ y_n = f\ s_{n-1}\ v_n \texttt{ in}$\\
+                                                            && \hspace*{.6cm}$\texttt{let } s_n\ y_n = (\lambda s_{n-1}\ x.t)\ v_n \texttt{ in}$\\
                                                             && \hspace*{.9cm}$ [s_n\ [y_1 \dots y_n]]$\\
                                                             && given that $\texttt{sf}_f  \in t$\\
                                                             &&\\
@@ -179,15 +179,13 @@ To formalize this, we let $t$ be a non-empty term that does not contain any stat
 We require non-emptiness here because otherwise the \texttt{map} function would only contain a \texttt{sf} combinator in which case no parallelization can occur.
 Furthermore, we define a state-modifying foreign function $\texttt{sf}_f$ and values $v_1 \dots v_n$ which are argument to \texttt{sf} and are bound either by the lambda expression mapped over of within $t$.
 The initial state value $s$ is bound outside the \texttt{map} combinator.
-We can now define this preliminary transformation as follows:\todo{Beautify equation}
+We can now define this preliminary transformation as follows:
 \begin{center}
     \begin{tabular}{l c l}
-        & \multirow{7}{*}{$\longrightarrow$} & $\texttt{let } x_\text{intermediate} = \texttt{map} ((\lambda s\ x.t$\\
-        && \hspace*{4.9cm}$[v_1 \dots v_n])$\\
+        & \multirow{7}{*}{$\longrightarrow$} & $\texttt{let } x_\text{intermediate} = \texttt{map} ((\lambda s\ x.t\ [v_1 \dots v_n])$\\
         $\texttt{map} ((\lambda s\ x.t$ && \hspace*{4cm}$[x_1 \dots x_n]) \texttt{ in}$\\
-        \hspace*{1.65cm}$\texttt{sf}_f (s\ v_1 \dots v_n))$ && \hspace*{.3cm}$\texttt{map}(( \lambda s\ y.$\\
-        \hspace*{.9cm}$[x_1 \dots x_n])$ && \hspace*{1.95cm}$\texttt{let } v_1 \dots v_n = y \texttt{ in}$\\
-                                          && \hspace*{2.25cm}$\texttt{sf}_f (s\ v_1 \dots v_n))\ s$\\
+        \hspace*{1.65cm}$\texttt{sf}_f (s\ v_1 \dots v_n))$ && \hspace*{.3cm}$\texttt{map}(( \lambda s\ y. \texttt{let } v_1 \dots v_n = y \texttt{ in}$\\
+        \hspace*{.9cm}$[x_1 \dots x_n])$ && \hspace*{2.25cm}$\texttt{sf}_f (s\ v_1 \dots v_n))\ s$\\
                                           && \hspace*{1.1cm}$x_\text{intermediate})$
     \end{tabular}
 \end{center}
