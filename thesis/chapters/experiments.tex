@@ -91,10 +91,16 @@ The code for all benchmarks we wrote for this thesis may be found online~\cite{w
 When implementing the \emph{labyrinth} benchmark, we found that two transactions may deadlock.
 We have reported this issue~\cite{wittwer2020stmissue} and resorted to forking and patching the library~\cite{wittwer2020stm} in question to move on with our tests.
 
-%TODO:
-%- explain why i chose bench xy
-%- explain benches
-%  - detail for labyrinth (etc) why they are so hard to parallelise
+
+\subsection{Parallelism Opportunities}
+\label{sec:experiments:opportunities}
+
+When presenting each benchmark, we will provide a short assessment of the opportunities for parallelism it provides and how they can be exploited when using Ohua and STM.
+Goal of this analysis is to detect structural limitations within the benchmarks which one of the frameworks cannot overcome to exploit the full available parallelism.
+For this analysis, we produced an abstract prepresentation of each selected application which aims to point out a program's structural parallelism opportunities.
+To keep this representation concise and simple, we simplified each algorithm by removing loop conditions, abort conditions and any unnecessary computations.
+The resulting abstracted code snippets only contain the main operations performed on the input data to produce the end result as well as any shared state that may be used.
+
 
 \subsection{Labyrinth Path Mapping}
 \label{sec:experiments:labyrinth}
@@ -104,6 +110,23 @@ Since we have already analyzed and implemented this application, it was apparent
 Additionally, it is one of few benchmarks in the suite exhibiting amorphous data parallelism, a trait the authors did not consider when compiling their benchmark list but which they happened to include by coincidence, as it is frequently encountered in real-life applications using shared state, the main use case for transactional memory applications.
 Another interesting property of the benchmark was its frequent use of transactions (the whole algorithm is executed within transactions) and the high contention on the shared data structure, which puts the synchronization primitives under heavy stress, as described before.
 
+\begin{listing}
+    \begin{minted}[fontsize=\footnotesize]{Rust}
+        let mut maze = Maze::initialize();
+        for pair in points {
+            let path = find_path(maze, pair);
+            maze.update(path);
+        }
+    \end{minted}
+    \caption{Abstract description of the \emph{labyrinth} algorithm}
+    \label{fig:experiments:opportunities:algos:labyrinth}
+\end{listing}
+
+As can be seen in Listing~\ref{fig:experiments:opportunities:algos:labyrinth}, the \emph{labyrinth} application consists of a state-modifying loop.
+After finding a path for each input coordinate pair, the maze gets updated accordingly.
+This intertwining of calculation and state update is customary to programs exhibiting amorphous data parallelism, as it creates these dependencies between separate calculations in the first place.
+When using STM for concurrency control, one can execute the whole loop in parallel, guarding each individual iteration using a transaction, resulting in the 100 \% transaction coverage reported in Table~\ref{tab:experiments:overview}.
+Ohua is also able to exploit the parallelism in this loop due to the Transformations~2 and~3, allowing both approaches to possibly exploit the maximal available parallelism.
 
 %The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
 %Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
@@ -130,10 +153,30 @@ These flows can then finally be matched against known attack patterns, filtering
     \label{fig:experiments:intruder:workflow}
 \end{figure}
 
-While our STM implementation performs the steps two and three in parallel, in Ohua only the third step is parallelized by the compiler since the second step consists only of a loop that writes all inputs to a state value.
+\begin{listing}
+    \begin{minted}[fontsize=\footnotesize]{Rust}
+        let mut flows = State::new();
+        for packet in input {
+            flows.add(packet);
+        }
+
+        for flow in flows {
+            analyze(flow);
+        }
+    \end{minted}
+    \caption{Abstract description of the \emph{intruder} algorithm}
+    \label{fig:experiments:opportunities:algos:intruder}
+\end{listing}
+
+In this application, no amorphous data parallelism may be found.
+Instead, we encounter two loops of which one is stateful and the other state-free, as shown in Listing~\ref{fig:experiments:opportunities:algos:intruder}.
+The flow reassembly phase (step two) happens in parallel in the STM implementation, using a transaction-aware HashMap.
 Since the loop body does not contain any other state-free functions, there are no parallelization opportunities for Ohua as no transformations from Chapter~\ref{sec:transformations} are applicable.
-Step three however consists of a state-free loop where all inputs are checked for malicious data flows, something that can easily be optimized by applying Transformation 1 as presented in Chapter~\ref{sec:transformations:tf1}.
-This shows that Ohua may only extract parallelism from irregular applications that fit certain criteria, i.e., contain loops that do not solely consist of state-modifying operations, as its main approach is to exploit data parallelism by the use of certain transformations to uncover it.
+Also, it would not make sense to attempt to exploit parallelism from this loop using any workarounds, so it is executed sequentially.
+This shows that Ohua may only extract non-trivial parallelism from irregular applications that fit certain criteria, i.e., contain loops that do not solely consist of state-modifying operations, as its main approach is to exploit data parallelism by the use of certain transformations to uncover it.
+Both approaches manage to implement the state-free analysis loop (step three) in parallel as again no concurrency control is necessary.
+Ohua does this using Transformations~1 and~4.
+Our evaluation will show, whether it is more performant to attempt to exploit parallelism from the stateful loop or if a sequential approach as done in Ohua will perform better.
 
 This benchmark was chosen because it is mostly similar in its properties to the labyrinth application as it also features short transactions and high contention on the shared data, but does only spend about 33 \% of the overall execution time in transactions.
 We mainly wanted to see, how this slight difference in properties is reflected in the performance results.
@@ -152,8 +195,27 @@ Following this initialization, each observation is assigned to its nearest clust
 Afterwards, new centroids are computed by calculating the means of all observations now assigned to a certain cluster.
 These last two steps now get repeated iteratively until the algorithm either reaches an upper bound of iterations or converges, i.e., less than a certain percentage of observations change per iteration.
 
-In the STM version each iteration is executed completely in parallel, splitting the input dataset equally among the executing threads and guarding access to the centroids and the delta value, which is used for deciding on convergence, using transactions.
-Ohua also does each iteration in parallel using Transformation 1 and 4 to exploit data parallelism although the loop has been written in the algorithm in a way to make sure no shared state exists within.
+\begin{listing}
+    \begin{minted}[fontsize=\footnotesize]{Rust}
+        let mut centers = initialize(input);
+        loop {
+            // data parallelism
+            for item in input {
+                item.find_center(centers);
+            }
+            // fold
+            centers = recompute(input);
+        }
+    \end{minted}
+    \caption{Abstract description of the \emph{kmeans} algorithm}
+    \label{fig:experiments:opportunities:algos:kmeans}
+\end{listing}
+
+In the \emph{kmeans} application, all parallelizable calculations happen within the single state-free innermost loop, which assigns all observations to a new centroid before the new centroids are calculated sequentially.
+This is shown in Listing~\ref{fig:experiments:opportunities:algos:kmeans}.
+The STM implementation introduces some shared state for deciding on the convergence of the algorithm (not depicted in the abstract representation) and for updating the centroids during the inner loop iteration, executing the whole body of the outermost loop in parallel using transactions.
+Ohua exploits the data parallelism of the inner loop using Transformations~1 and~4 to exploit data parallelism.
+As both approaches are able to exploit all opportunities for parallelism, though each does it differently, we expect similar performances for both implementations.
 
 k-means is very much like the intruder benchmark in the regard that its parallelism opportunities are limited to a single state-free loop but unlike the aforementioned benchmark k-means features low contention on shared data structures while presenting a similar transaction utilization, making this an interesting benchmark to look at.
 
@@ -162,7 +224,7 @@ k-means is very much like the intruder benchmark in the regard that its parallel
 This benchmark implements a \emph{\enquote{whole-genome shotgun sequencing}} algorithm as outlined by Pop et al.~\cite{pop2002genome} in their work.
 Its goal is to sequence a (fictional) genome, i.e.\ to reassemble a nucleotide sequence from a set of snippets which is something frequently done in genetics.
 
-\begin{figure}[b]
+\begin{figure}
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/experiments-genome}
     \caption{Visualization of the overlap matching found in the \emph{genome} benchmark. The blue match is stronger as it has seven matching elements and has hence been found first.}
     \label{fig:experiments:genome-example}
@@ -179,8 +241,31 @@ Three iterations later, the green match is established, fully connecting the cen
 After this phase has finished, all but two segments have a predecessor and successor assigned.
 Starting from the one element in the set with no predecessor, the chain of nucleotides can be rebuilt by simply following the links.
 
-In our STM implementation, the deduplication phase as well as the matching phase are implemented in parallel using a transaction-aware hash set implementation for the first and a doubly-linked list for the latter.
-Although we cannot provide an implementation for a hash set that can be shared using Ohua, we opted to assist the compiler in uncovering parallelism in the deduplication step by manually partitioning the worklist beforehand, so that the compiler may break the resulting state-free loop using the first transformation:
+\begin{listing}
+    \begin{minted}[fontsize=\footnotesize]{Rust}
+        let mut nucleotides = Hashset::new();
+        for segment in input {
+            // deduplication
+            nucleotides.insert(segment);
+        }
+
+        loop {
+            for item in nucleotides {
+                item.find_neighbor(nucleotides);
+            }
+        }
+    \end{minted}
+    \caption{Abstract description of the \emph{genome} algorithm}
+    \label{fig:experiments:opportunities:algos:genome}
+\end{listing}
+
+\emph{genome} consists, as outlined in Listing~\ref{fig:experiments:opportunities:algos:genome}, mainly of two separate loops.
+The first loop expression to deduplicate the input set is again a purely state-modifying loop, as seen before in the \emph{intruder} benchmark.
+All operations in the loop body are directly accessing the shared state, making parallelization difficult.
+The second loop on the other hand is state-free, allowing for the simple exploiting of the parallelism within without the need for concurrency control.\\
+Providing a parallel implementation for the first loop however, is more challenging.
+Only by using a transaction-aware HashMap with $k$ buckets, the STM implementation is able to exploit the loop's parallelism for up to $k$ conflict-free accesses.
+Ohua, again unable to use any transformations for leveraging parallelism, may also exploit a certain part of parallelism by emulating the same behavior as STM and partitioning the input set beforehand into $k$ parts, so that the compiler may break the resulting state-free loop using the first transformation:
 \begin{minted}{Rust}
 fn dedup(segments: Segments, threadcount: usize) -> Vec<SequencerItem> {
     let parts = partition(segments, threadcount);
@@ -189,119 +274,37 @@ fn dedup(segments: Segments, threadcount: usize) -> Vec<SequencerItem> {
     }
 }
 \end{minted}
-The second step is also a simple state-free loop, which can be easily parallelized by just applying transformation four.
 This application example shows, that even when using Ohua, code sometimes has to be written in a certain way to expose the parallelism opportunities of a computation to the compiler.
 Nevertheless, the resulting Ohua algorithms can still be executed as a sequential program while the resulting STM code, which is even more optimized by the use of special data structures, is unable to do so.
-
-Overall we chose this application to complete our benchmark selection as it provides similar properties as the kmeans benchmark in terms of transaction length and contention but spends nearly all its execution time in transactions, a stark change compared to the 7 \% of transaction time in kmeans.
-
-
-\section{Benchmark Analysis: Parallelism Opportunities}
-\label{sec:experiments:opportunities}
-
-\todo{Proof Read!}
-
-\begin{figure}
-    \begin{subfigure}[b]{.48\textwidth}
-        \begin{minted}[fontsize=\footnotesize,linenos=false]{Rust}
-            for pair in points {
-                let path = find_path(maze, pair);
-                maze.update(path);
-            }
-        \end{minted}
-        \caption{\emph{labyrinth} algorithm}
-        \label{fig:experiments:opportunities:algos:labyrinth}
-    \end{subfigure}
-    ~
-    \begin{subfigure}[b]{.48\textwidth}
-        \begin{minted}[fontsize=\footnotesize,linenos=false]{Rust}
-            let mut centers = initialize(input);
-            loop {
-                for item in input {
-                    item.find_center(centers);
-                }
-                centers = recompute(input);
-            }
-        \end{minted}
-        \caption{\emph{kmeans} algorithm}
-        \label{fig:experiments:opportunities:algos:kmeans}
-    \end{subfigure}
-    \vspace*{.5cm}
-    \begin{subfigure}[b]{.48\textwidth}
-        \ \\
-        \begin{minted}[fontsize=\footnotesize,linenos=false]{Rust}
-            let mut nucleotides = Hashset::new();
-            for segment in input {
-                // deduplication
-                nucleotides.insert(segment);
-            }
-
-            loop {
-                for item in nucleotides {
-                    item.find_neighbor(nucleotides);
-                }
-            }
-        \end{minted}
-        \caption{\emph{genome} algorithm}
-        \label{fig:experiments:opportunities:algos:genome}
-    \end{subfigure}
-    ~
-    \begin{subfigure}[b]{.48\textwidth}
-        \begin{minted}[fontsize=\footnotesize,linenos=false]{Rust}
-            let mut flows = State::new();
-            for packet in input {
-                flows.add(packet);
-            }
-
-            for flow in flows {
-                analyze(flow);
-            }
-        \end{minted}
-        \caption{\emph{intruder} algorithm}
-        \label{fig:experiments:opportunities:algos:intruder}
-    \end{subfigure}
-    \caption{Abstract description of the four benchmarks selected for comparison. All algorithms have been simplified to outline key behavioral patterns.}
-    \label{fig:experiments:opportunities:algos}
-\end{figure}
-
-Before we actually executed any of the benchmarks, we analyzed where each application exhibited opportunities for parallelism and how these could be exploited when using STM and Ohua.
-We did this to explore possible limitations of both approaches beforehand to better understand their potential performance impact on the applications when interpreting the benchmark results.
-For this analysis, we produced an abstract algorithm representation of each benchmark which outlines how the application processes its input and highlights where state is accessed.
-Figure~\ref{fig:experiments:opportunities:algos} shows the resulting four abstract algorithm representations.
-We simplified each algorithm, boiling it down to the main steps conducted to process its input.
-Loop conditions were removed to further simplify the algorithms.
-
-The \emph{labyrinth} application consists of a state-modifying loop, as can be seen in Fig.~\ref{fig:experiments:opportunities:algos:labyrinth}.
-After finding a path for each input coordinate pair, the maze gets updated accordingly.
-This intertwining of calculation and state update is customary to programs exhibiting amorphous data parallelism, as it creates these dependencies between separate calculations in the first place.
-When using STM for concurrency control, one can execute the whole loop in parallel, guarding each individual iteration using a transaction, resulting in the 100 \% transaction coverage reported in Table~\ref{tab:experiments:overview}.
-Ohua is also able to exploit the parallelism in this loop due to the Transformations 2 and 3, allowing both approaches to possibly exploit the maximal available parallelism.
-
-Within the \emph{kmeans} application, no amorphous data parallelism may be found, as shown in Fig.~\ref{fig:experiments:opportunities:algos:kmeans}.
-Instead, all calculations happen within the single state-free loop, which assigns all observations to a new centroid before the new centroids are calculated sequentially.
-Both Ohua and STM can easily be used to exploit this single parallelism opportunity within the innermost loop.
-As both approaches are able to exploit all opportunities, we expect similar performances for both implementations.
-
-\emph{genome} consists, as outlined in Fig.~\ref{fig:experiments:opportunities:algos:genome}, mainly of two separate loops.
-The first loop expression to deduplicate the input set is what we referred to in Chapter~\ref{sec:transformations:expression-ir} as purely state-modifying loop.
-All operations in the loop body are directly accessing the shared state, making parallelization difficult.
-The second loop on the other hand is state-free, allowing simple exploiting of the parallelism within without the need for concurrency control.
-Hence, there was no issue in both approaches to implement the second loop in parallel.
-Providing a parallel implementation for the first loop however, is more challenging.
-Only by using a transaction-aware HashMap with $k$ buckets, the STM implementation is able to exploit the loop's parallelism for up to $k$ conflict-free accesses.
-Ohua is also able to exploit a certain part of parallelism by emulating the same behavior as STM and partitioning the input set beforehand into $k$ parts.
 Overall, we expect differing results for both implementations, as they try to exploit the parallelism hidden in the first stateful loop in different ways, probably with varying degrees of success.
 
-In the last application, \emph{intruder}, we again encounter two loops of which one is stateful and the other state-free, just as was the case in \emph{genome}.
-The flow reassembly happens in parallel in the STM implementation, using again a transaction-aware data structure, this time a HashMap.
-For Ohua, it would not make sense to attempt to exploit parallelism using any workarounds, to it is executed sequentially as no transformations may be applied here.
-Both approaches implement the state-free analysis loop in parallel as again no concurrency control is necessary.
-Our evaluation will show, whether it is more performant to attempt to exploit parallelism from the stateful loop or if a sequential approach as done in Ohua will perform better.
+All in all we chose this application to complete our benchmark selection as it provides similar properties as the kmeans benchmark in terms of transaction length and contention but spends nearly all its execution time in transactions, a stark change compared to the 7 \% of transaction time in kmeans.
 
-Overall, we found in our analysis that only the labyrinth application contains amorphous data parallelism and is the only application where Ohua's Transformations 2 and 3 are applicable.
+\subsection{Summary}
+\label{sec:experiments:opportunity-summary}
+
+In summary, we found in our analysis that only the labyrinth application contains amorphous data parallelism and is the only application where Ohua's Transformations~2 and~3 are applicable.
 All other benchmarks contain loops that are state-free, while possibly occuring state modifications exist in separate loops.
 While STM can be used to exploit parallelism from the latter, Ohua has to execute this type of loop sequentially to avoid handling shared state.
 Therefore, we expect to see different behavior in the labyrinth application than in the other applications for Ohua's performance compared to STM.
+
+\section{Reference Measurements}
+\label{sec:experiments:reference}
+
+Minh et al.\ proposed their STAMP suite in 2008.
+Since then, hardware (e.g., clock speeds of CPUs) as well as compile-time optimizations have evolved significantly, rendering the results provided in their paper outdated.
+Hence, we decided to run the benchmarks relevant to our investigation again, on the same hardware and under the same conditions as our Rust benchmarks to have a reference we can compare our STM implementations to.
+Although the authors themselves only measured results for the smaller two of their three suggested input sets, we tested all three to have a more comprehensive set of results to compare our STM implementation against.
+
+Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation~\cite{minh2013stampcode}, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in Chapter~\ref{sec:introduction}.
+The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.
+We reported this issue~\cite{wittwer2020stampgenome} and employed a workaround to be able to use the benchmark nonetheless.
+Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash.\todo{[when time] report these issues on gihtub?}
+Similar behavior was found for the intruder application, although we did not investigate this further, instead discarding failed runs in both cases, lowering the effective number of test results slightly below 30.
+These issues cement some of the drawbacks of STAMP and STM in general, which we discussed in the beginning of this thesis.
+
+For comparability and in order to provide a more complete performance graph, we intended to run the selected four benchmarks for the same range of threads as our own applications but the suite only supports thread counts which are a power of two, leaving us with 1, 2, 4, 8 and 16 threads as test parameters.
+Due to this limited result range, we will only be able to draw vague general comparisons between STAMPs STM and our own STM implementation as the sparse result coverage for higher thread counts leaves us unable to reliably identify trends in the performance of STAMP.
 
 \section{Measurements}
 \label{sec:experiments:measurements}
@@ -378,22 +381,4 @@ where $S_c$ is the speedup of the configuration under investigation, $t_{seq}$ i
 All benchmarks conducted for this work were run on an Ubuntu 18.04 server with 128GB RAM and two Intel Xeon E5-2630 v2 processors which have a base frequency of 2.60 GHz and offer combined 12 cores with 24 threads.
 At all times, the program under inspection was running exclusively on the machine, meaning that aside from background operating system jobs, no other tasks ran on the system simultaneously.
 
-\section{Reference Measurements}
-\label{sec:experiments:reference}
-
-\todo{Move this up above the setup section?}
-Minh et al.\ proposed their STAMP suite in 2008.
-Since then, hardware (e.g., clock speeds of CPUs) as well as compile-time optimizations have evolved significantly, rendering the results provided in their paper outdated.
-Hence, we decided to run the benchmarks relevant to our investigation again, on the same hardware and under the same conditions as our Rust benchmarks to have a reference we can compare our STM implementations to.
-Although the authors themselves only measured results for the smaller two of their three suggested input sets, we tested all three to have a more comprehensive set of results to compare our STM implementation against.
-
-Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation~\cite{minh2013stampcode}, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in Chapter~\ref{sec:introduction}.
-The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.
-We reported this issue~\cite{wittwer2020stampgenome} and employed a workaround to be able to use the benchmark nonetheless.
-Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash.\todo{[when time] report these issues on gihtub?}
-Similar behavior was found for the intruder application, although we did not investigate this further, instead discarding failed runs in both cases, lowering the effective number of test results slightly below 30.
-These issues cement some of the drawbacks of STAMP and STM in general, which we discussed in the beginning of this thesis.
-
-For comparability and in order to provide a more complete performance graph, we intended to run the selected four benchmarks also for 1-24 threads but the suite only supports thread counts which are a power of two, leaving us with 1, 2, 4, 8 and 16 threads as test parameters.
-Due to this limited result range, we will only be able to draw vague general comparisons between STAMPs STM and our own STM implementation as the sparse result coverage for higher thread counts leaves us unable to reliably identify trends in the performance of STAMP.
 

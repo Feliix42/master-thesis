@@ -70,7 +70,7 @@ We are going to describe our transformations in this intermediate representation
 The Expression IR we use is based on the call-by-need lambda calculus~\cite{ariola1997lambda, ariola1995lambda} which prevents duplicated computations.
 Figure~\ref{fig:transformations:definition} defines our expression language, which is building atop the language used in previous research on Ohua optimizations~\cite{ertel2018compiling} by Ertel et al.
 The language defines the basic terms of the call-by-need lambda calculus for variables, abstractions, application and lexical scoping.
-We additionally define conditionals and fixed-point combinators to realize recursive expressions\todo{@Sebastian: Should I elaborate on fixed-point combinator?} as well as free and state-modifying foreign functions.
+We additionally define conditionals and fixed-point combinators to realize recursive expressions as well as free and state-modifying foreign functions.
 Using the combinator $\text{ff}_f$, one can express the application of a function $f$ which is not defined as part of the calculus to an arbitrary number of arguments.
 This allows us to integrate code written in other languages like Rust into the algorithm, which is a key premise for Ohua's concept as Embedded DSL.
 Furthermore, we expand the definitions used in previous work by adding the combinator $\text{sf}_f$, which applies a method $f$ to a state value $s$ and an arbitrary number of additional values.
@@ -127,7 +127,6 @@ Notably, we removed the loop split that allowed us to exploit some initial paral
 In the corresponding Lambda Expression in Fig.~\ref{fig:transformations:ir-first-stage} we bind the \texttt{fill} algorithm to a fixed-point combinator $f$.
 In it, we bind the body of the loop to $f_\text{body}$, to which we then apply the initial state value $x_\text{maze}$.
 The resulting partial binding is then mapped onto the list of input values, namely $x_\text{points}$.
-%We will later attempt to apply our defined transformations exemplary to this algorithm to show how they work.\todo{"and discuss their correctness"?}
 
 \pagebreak
 

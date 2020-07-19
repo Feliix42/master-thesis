@@ -105,30 +105,15 @@ The medium sized input set however, produces a rise so flat it almost becomes in
 We suspect this to be caused by the slow reassembly phase of the benchmark, which operates on a shared HashMap.
 Even though we augmented the standard libraries' HashMap implementation with basic transaction handling capabilities like Minh et al.\ did, there is still a lot of contention on these shared data instances, impacting execution times.
 This assumption is supported by the immense amount of CPU time used by the STM implementation.
-Because of these long execution times for STM we only measured Ohua's speedups for the significantly larger intruder++ input set.
+Because of these long execution times we did not measure STM's speedups for the significantly larger intruder++ input set.
 
 Ohua on the other hand achieves in both smaller cases relatively good speedups of about 1.5 and 1.3 respectively, outperforming Software Transactional Memory.
 Particularly interesting is the performance plateau that is reached by Ohua for a medium amount of threads and which is best visible in the smallest input set.
-Source of this is the fact that a not insignificant portion of the algorithm runs sequentially in Ohua.
+Source of this is the fact that a not insignificant portion of the algorithm runs sequentially in Ohua, as explained in Chapter~\ref{sec:experiments:intruder}.
 Hence, only a certain speedup may be achieved by parallelizing the application, thus creating a plateau that transitions into declining performance later on when the framework overhead becomes too large.
 But as was the case with STM, the intruder+ version performs slightly worse than the smaller input set and Ohua's intruder++ results are even worse, below 1.0.
-This can be attributed to the increasing sizes of the input set, which take longer to process during the sequential flow reassembly phase, impairing the speedup achieved by the parallel detection phase.
+This can be attributed to the increasing input set sizes, which take longer to process during the sequential flow reassembly phase, impairing the speedup achieved by the parallel detection phase.
 The aforementioned performance difference is also clearly seen in the use of CPU time which is shown in Figure~\ref{fig:evaluation:intruder-cpu}, where Ohua uses orders of magnitude less CPU time than STM.
-
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans-high_comb}
-    \caption{Speedup in the kmeans-high application relative to a sequential implementation.}%
-    \label{fig:evaluation:kmeans-high}
-\end{figure}
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_kmeans-high_comb}
-    \caption{CPU time used by both frameworks in the kmeans-high application.}%
-    \label{fig:evaluation:kmeans-high-cpu}
-\end{figure}
 
 \paragraph{kmeans} Our \emph{kmeans} results show no clear winner in terms of performance.
 Although there were differences in the performance behavior between the high contention and low contention versions of the STAMP benchmark, the STM version written in Rust showcases in Figures~\ref{fig:evaluation:kmeans-high} and~\ref{fig:evaluation:kmeans-low} similar curve shapes for both sets of input data which are completely different from the results in Fig.~\ref{fig:evaluation:stamp}.
@@ -159,6 +144,20 @@ In Rust however, this is impossible.
 The language itself does not allow this type of fast yet unsafe memory sharing, as the type system ensures that data shared across threads without locks is read-only.
 So, if one wants to implement the same algorithm shown in above listing without locks in Rust, the data must either be copied\footnote{In Rust jargon, this is called a \emph{clone}.} and sent to the respective threads (making a later consolidation of the changes made necessary) or the vector has to be split apart, each part moved into the scope of the respective thread.
 Both approaches are time-consuming, as in both cases new memory must be allocated for the new vectors and the data has to be copied or moved, not to mention the time it takes to consolidate the changes made afterwards.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans-high_comb}
+    \caption{Speedup in the kmeans-high application relative to a sequential implementation.}%
+    \label{fig:evaluation:kmeans-high}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_kmeans-high_comb}
+    \caption{CPU time used by both frameworks in the kmeans-high application.}%
+    \label{fig:evaluation:kmeans-high-cpu}
+\end{figure}
 
 Overall, both benchmark sets show that there is no clear pattern for Ohua's performance with respect to the size of the input set.
 Each individual set of input data requires a specific number of iterations before the algorithm converges.
@@ -216,20 +215,24 @@ But due to the large portions of still sequential code, i.e., the nucleotide seq
 \label{sec:evaluation:summary}
 
 In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times\footnote{This is not immediately visible in the speedup plots in Chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
-Our achieved results are on par with those of STM in applications like the labyrinth benchmark, where isolating and exploiting state-free parallelism was relatively easy.\todo{Explain importance of TF2?}
-Technically, we also outperformed Software Transactional Memory in the intruder and genome benchmarks but as STM achieved in both cases subpar results, it should be evaluated whether the STM library used can be optimized for a performance comparable to the C-based implementation before judging about this.
+Our achieved results are on par with those of STM in applications like the labyrinth benchmark, where it was able to break up the stateful loop using Transformation~2 and~3.
+Technically, we also outperformed Software Transactional Memory in the intruder and genome benchmarks but as STM achieved in both cases subpar results, it should be evaluated whether the STM library used can be optimized for a performance comparable to the C-based version or whether this is not an implementation-related but rather a framework-related issue before judging about this.
 
 With the kmeans and genome benchmarks, it became apparent that not all shared state applications offer the same amount of parallelism exploitable using the transformations we proposed in Chapter~\ref{sec:transformations}.
 In fact, it became apparent that of the various forms of irregular applications tested, the one exhibiting amorphous data parallelism could be parallelized best: the labyrinth benchmark.
-It is the only one of the four algorithms we implemented that displays the characteristics of amorphous data parallelism we explained in Chapter~\ref{sec:background:irregular:adp}.
-This may indicate that Ohua would be most effective when targeting this type of applications in particular, as our batching transformations presented in chapters~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} enable us to handle the state updates found in this type of applications.
+This is the only one of the four algorithms we implemented that displays the characteristics of amorphous data parallelism we explained in Chapter~\ref{sec:background:irregular:adp}.
+That may indicate that Ohua would be most effective when targeting this type of applications in particular, as our batching Transformation~2 and~3 presented in chapters~\ref{sec:transformations:tf15} and~\ref{sec:transformations:tf2} enable us to handle the state updates found in this type of applications.
 To verify this, future work should implement other programs from the STAMP suite that contain amorphous data parallelism such as the \emph{yada} and \emph{ssca2} algorithms.
 But even in the non-amorphous cases we tested Ohua on, we saw a significantly lower CPU usage, and by extension power consumption, for Ohua than for STM.
 The absence of contention in Ohua's model is the key reason for this conservation of resources.
+Hence, the fact that the framework is more limited in what parallelism may be exploited does not seem to be a downside but rather an advantage.
+Such state-modification-only loops contain usually more contention as transactions are much shorter and commits occur more frequently.
+Exploiting parallelism from these loops hence has the potential of yielding a negative instead of a positive performance impact, as more write conflicts and recomputations occur.
 
 Overall, Ohua would indeed seem to be a promising replacement for STM-based shared state applications.
 While it is clearly not suited to be used for every type of shared state program, so is STM.
 Performance-wise Ohua will not always outperform Software Transactional Memory but manages to at least be on par with it, while yielding other positive properties like a deterministic execution model, often better energy efficiency, and easier to work with code bases due to the elimination of parallelism abstractions.
+Based on the benchmark results we assume, that Ohua will showcase the best performance behavior when used in applications with amorphous data parallelism as this allows it to not just parallelize state-free loops but also stateful loops using Transformation~2 and~3.
 
 % - present benchmark results -- maybe for the manual Ohua implementation as well, if results differ
 % - discuss why we perform better/worse at certain points

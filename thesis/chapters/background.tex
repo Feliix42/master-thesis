@@ -9,6 +9,64 @@ To better understand why STM's optimistic approach to parallelism gives it an ad
 Therefore, we will introduce the class of \emph{Irregular Applications} as well as the term \emph{Amorphous Data Parallelism} which both describe important properties encountered in many shared state applications.
 We will also briefly discuss the difficulties that arise when reasoning about said application types and motivate, why further research into this topic could prove valuable.
 
+
+\section{Irregular Applications}
+\label{sec:background:irregular}
+
+% Providing a comprehensive comparison between STM and Ohua requires a selection of representative shared state applications to test both systems on.
+% But to make such a selection, one first has to understand, which features describe such an application and how these properties may influence the parallel behavior as well as the viability of certain frameworks used for state sharing.
+In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
+These are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
+As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.
+
+However, most applications that share state in some form, which are the main focus in this thesis, are \emph{irregular applications}.
+This term describes applications, whose structure revolves around the manipulation of large, pointer-based data structures like graphs and trees.
+Due to this structural peculiarity, compiler analyses struggle to uncover any meaningful insights into the algorithm that would allow to exploit any parallelism hidden in it.
+
+\begin{figure}[b]
+    \centering
+    \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-irregular}
+    \caption{Graph representation of an irregular application with active elements and their neighborhoods. Adapted from Kulkarni et al.~\cite{kulkarni2009much}}%
+    \label{fig:background:irregular}
+\end{figure}
+
+To better outline this, Kulkarni et al.~\cite{kulkarni2009much} developed an abstract representation for irregular programs using a set of nodes and edges, as shown in Fig.~\ref{fig:background:irregular}.
+The nodes and edges represent the input data and their relationships.
+During the execution of an irregular algorithm, the program may perform computations on a (sub-)set of active nodes or edges, the work items.
+In Figure~\ref{fig:background:irregular}, these are highlighted in red.
+Performing said executions may involve reading from or writing to other nodes or edges in the graph, which form an active elements' neighborhood, shaded in blue.
+Which elements of the graph make up the neighborhood of an active element is not known beforehand and may encompass all direct neighbors in the graph (as seen for nodes $n_2$ and $n_3$), maybe only a single neighboring element (as seen for node $n_4$) or transitively the neighboring elements of its direct neighbors.
+
+Usually, work items are not ordered and may be processed in any order.
+But processing one element may generate an arbitrary number of new active elements or remove others from the pool, depending on the algorithm.
+Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
+
+Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
+Yet, most shared state applications are irregular applications by design, making this a large and interesting field of research.
+% Because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
+Because static parallelization fails to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies need to be used to tackle this class of problems.
+% This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.
+% As of now, it is unclear whether Ohua could also be used to parallelize irregular applications, offering an alternative besides STM for this type of applications where most other frameworks fail.
+% Since its approach relies heavily on compile-time analyses and optimizations, it may prove challenging to try to uncover good parallelism opportunities here.
+
+
+\subsection{Amorphous Data Parallelism}
+\label{sec:background:irregular:adp}
+
+Pingali et al.~\cite{pingali2009amorphous} argue, that most irregular applications additionally exhibit a behavior referred to as \emph{amorphous data parallelism}:
+
+Given a set of active nodes and an ordering on them, amorphous data parallelism is the parallelism that arises from simultaneously processing active nodes and is subject to neighborhood and ordering constraints.
+It is a generalization of standard data parallelism in which
+\begin{enumerate}
+    \item concurrent operations may conflict with each other
+    \item activities can be created dynamically
+    \item activities may modify the underlying data structure
+\end{enumerate}
+These characteristics have already been briefly discussed in connection with Fig.~\ref{fig:background:irregular}.
+
+While irregular applications are hard to reason about due to their pointer usage, they are still a very interesting research topic, made more difficult by amorphous data parallelism.
+But as we will show in Chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications using shared state.
+
 \section{Software Transactional Memory}
 \label{sec:background:stm}
 
@@ -22,6 +80,13 @@ Another problem is lock contention.
 If a lock is currently taken, all other threads seeking to acquire it have to wait.
 This opens up a new set of problems, as frequent waiting leads to prolonged execution times.
 Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, resulting in a higher chance of an accidental deadlock, and high contention.
+
+Additionally, locking follows a pessimistic approach to parallelism\todo{elaborate (again)?}, which is completely unsuitable for uncovering any viable parallelism in irregular applications.
+This is due to the fact that, as we have shown in the previous section, the heavy use of pointers in these programs hinders the efficient fine-grain use of locks, forcing developers to employ a coarse-grain locking strategy.
+But at the same time, conflicts due to parallelization in these programs may be rare, depending on the input data.
+It is possible to work on a large graph data structure in parallel with multiple threads without conflicts, when all threads work on non-overlapping portions of the program.\todo{link to previous fig?}
+In the example from Figure~\ref{fig:background:irregular} for instance, the nodes $n_1$, $n_2$ and $n_3$ could be processed in parallel without conflicts.
+Locking however is unable to provide this type of speculative approach to parallel execution necessary to efficiently parallelize these applications.
 
 \begin{figure}[h]
     \begin{subfigure}[h]{\textwidth}
@@ -51,7 +116,7 @@ Mitigating contention issues forces developers to consider the trade-off between
     \label{fig:background:stm}
 \end{figure}
 
-Hence, Shavit et al.~\cite{shavit1997software} proposed a concept called \emph{Software Transactional Memory}.
+Therefore, Shavit et al.~\cite{shavit1997software} proposed a concept called \emph{Software Transactional Memory}.
 This new approach to synchronization aimed to provide lock-free parallelism abstractions that allow multiple threads access to a shared variable without any form of blocking.
 Former critical sections are now regarded as \emph{transactions}, which operate similar to their namesake in databases: 
 They ensure atomicity, consistency and isolation for the code blocks they protect, only falling short in the durability databases offer, as this is not required for data residing in memory.
@@ -66,12 +131,13 @@ This is normally done until the transaction committed successfully.
 In our example in Fig.~\ref{fig:background:stm}, the transactions 1 and 2 both read the same value and modify it.
 But since the first transaction was able to commit earlier, the second transaction now stands in conflict and has to be aborted and scheduled for re-execution.
 
-As the example already shows, a fundamental benefit of the Software Transactional Memory model is its serializability~\cite{swalens2016transactional}:
+As the example already shows, a fundamental benefit of the Software Transactional Memory model is that it retains serializability~\cite{swalens2016transactional}:
 All transactions seem to execute serially, since the steps of one transaction never appear to be interleaved with the steps of another transaction.
 Therefore, the results of an execution must be equal to the result of a serial execution.
 This has been formalized by Swalens et al.~\cite{swalens2016transactional} in their proposed operational semantics for a language with transactions.
 
-Overall, STM takes an optimistic approach~\cite{kulkarni2007optimistic} to parallelism, because it can be used to speculatively execute numerous computations in parallel without applying any heuristics or reasoning, hoping for as few conflicts as possible.
+Overall, STM takes an optimistic approach~\cite{kulkarni2007optimistic} to parallelism, because it can be used to speculatively execute numerous computations in parallel, hoping for as few conflicts as possible.
+This is beneficial to irregular applications, as parts of these applications can only be efficiently parallelized using an optimistic approach.
 The result of this is an underlying non-determinism that ensues everytime transactions are employed in a multi-threaded environment.
 Problems in this strategy become apparent when applied to high-contention scenarios.
 Since STM may work in parallel over the same data structure or memory region, high contention always leads to a significantly increased number of retries for individual executions, which in turn leads to drastically reduced performance.
@@ -159,74 +225,5 @@ This offers the advantage of producing framework agnostic code which can be easi
 
 Challenging however, is the ban the framework places on the use of shared state.
 Many applications encountered in the real world rely on the use of pointers and shared, global state.
-Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs, which the Software Transactional Memory framework caters towards by design.
+Since Ohua currently only fosters the use of local state with its stateful functions primitives, it is unclear whether it is possible to apply these concepts to shared state programs, which the Software Transactional Memory framework caters towards by design, and how good Ohua would perform compared to speculative parallelism which it itself does not exhibit.
 
-
-\section{Irregular Applications}
-\label{sec:background:irregular}
-
-Providing a comprehensive comparison between STM and Ohua requires a selection of representative shared state applications to test both systems on.
-But to make such a selection, one first has to understand, which features describe such an application and how these properties may influence the parallel behavior as well as the viability of certain frameworks used for state sharing.
-In the past, most of the research conducted in the field of performance improvements for parallel programs has concerned itself with what is called regular applications.
-These are applications, whose degree of exploitable parallelism is simply determined by the program structure and the size of the input set.
-As both of there properties are known or can be inferred at compile time, any optimization potential is easy to uncover and exploit for compilers.
-
-When looking at \emph{irregular applications} on the other hand, the situation is completely different.
-The term describes applications, whose structure resolves around the manipulation of large, pointer-based data structures like graphs and trees.
-Due to this structural peculiarity, compiler analyses struggle to uncover any meaningful insights into the algorithm that would allow to exploit any parallelism hidden in it.
-
-\begin{figure}[b]
-    \centering
-    \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-irregular}
-    \caption{Graph representation of an irregular application with active elements and their neighborhoods. Adapted from Kulkarni et al.~\cite{kulkarni2009much}}%
-    \label{fig:background:irregular}
-\end{figure}
-
-To better outline this, Kulkarni et al.~\cite{kulkarni2009much} developed an abstract representation for irregular programs using a set of nodes and edges, as shown in Fig.~\ref{fig:background:irregular}.
-The nodes and edges represent the input data and their relationships.
-During the execution of an irregular algorithm, the program may perform computations on a (sub-)set of active nodes or edges, the work items.
-In Figure~\ref{fig:background:irregular}, these are highlighted in red.
-Performing said executions may involve reading from or writing to other nodes or edges in the graph, which form an active elements' neighborhood, shaded in blue.
-Which elements of the graph make up the neighborhood of an active element is not known beforehand and may encompass all direct neighbors in the graph (as seen for nodes $n_2$ and $n_3$), maybe only a single neighboring element (as seen for node $n_4$) or transitively the neighboring elements of its direct neighbors.
-
-Usually, work items are not ordered and may be processed in any order.
-But processing one element may generate an arbitrary number of new active elements or remove others from the pool, depending on the algorithm.
-Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
-
-Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
-Yet, most shared state applications are irregular applications by design, making this a large and interesting field of research.
-Because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
-This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.
-As of now, it is unclear whether Ohua could also be used to parallelize irregular applications, offering an alternative besides STM for this type of applications where most other frameworks fail.
-Since its approach relies heavily on compile-time analyses and optimizations, it may prove challenging to try to uncover good parallelism opportunities here.
-
-
-\subsection{Amorphous Data Parallelism}
-\label{sec:background:irregular:adp}
-
-Pingali et al.~\cite{pingali2009amorphous} argue, that most irregular applications additionally exhibit a behavior referred to as \emph{amorphous data parallelism}:
-
-Given a set of active nodes and an ordering on them, amorphous data parallelism is the parallelism that arises from simultaneously processing active nodes and is subject to neighborhood and ordering constraints.
-It is a generalization of standard data parallelism in which
-\begin{enumerate}
-    \item concurrent operations may conflict with each other
-    \item activities can be created dynamically
-    \item activities may modify the underlying data structure
-\end{enumerate}
-These characteristics have already been briefly discussed in connection with Fig.~\ref{fig:background:irregular}.
-
-While irregular applications are hard to reason about due to their pointer usage, they are still a very interesting research topic, made more difficult by amorphous data parallelism.
-But as we will show in Chapter~\ref{sec:experiments}, applications of this type are common and widespread in different aspects of real world applications using shared state.
-
-
-
-
-% - present both Ohua and STM
-%   - explain paradigms in detail (most people here don't know what stm is and how it works!)
-%   - detail benefits and shortcomings of both
-%   - Ohua: talk about the compiler, its stages and where optimizations hook in as this will be required information later on.
-%   - STM: Detail that non-determinism is part of the execution model -> speculative parallelism
-%       - make sure to thoroughly explain the concept of a transaction
-%   - Ohua: detail determinism of the model if appropriate, but remember that this will also be discussed later on
-% - explain Irregular Applications: They are different from the parallelizability problems we usually face as the input dictates the parallelism at runtime and the computing times!
-%   - use: \label{sec:background:irregular}
