@@ -222,6 +222,9 @@ Basic idea for this transformation is to turn the stateful loop into a recursive
 To formalize this we let $n$ be the number of items to be processed per step.
 As for the previous transformation, $s$ defines the initial state value and is bound outside of the \texttt{map} expression, while $[x_1 \dots x_p]$ is the set of input values for the map operation.
 The term $t$ does not contain any \texttt{sf} combinators and the values $v_1 \dots v_p$ are all bound within the scope of the lambda expression mapped over.
+
+\newpage
+
 The transformation is then defined as follows:
 \begin{center}
     \begin{tabular}{l}

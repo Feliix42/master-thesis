@@ -115,36 +115,6 @@ But as was the case with STM, the intruder+ version performs slightly worse than
 This can be attributed to the increasing input set sizes, which take longer to process during the sequential flow reassembly phase, impairing the speedup achieved by the parallel detection phase.
 The aforementioned performance difference is also clearly seen in the use of CPU time which is shown in Figure~\ref{fig:evaluation:intruder-cpu}, where Ohua uses orders of magnitude less CPU time than STM.
 
-\paragraph{kmeans} Our \emph{kmeans} results show no clear winner in terms of performance.
-Although there were differences in the performance behavior between the high contention and low contention versions of the STAMP benchmark, the STM version written in Rust showcases in Figures~\ref{fig:evaluation:kmeans-high} and~\ref{fig:evaluation:kmeans-low} similar curve shapes for both sets of input data which are completely different from the results in Fig.~\ref{fig:evaluation:stamp}.
-This is most likely due to differences in the implementations of both benchmark versions.
-C-based programs allow ways of memory sharing that are irreproducible in Rust, forcing us to change some aspects of the program, probably causing these differences.
-An example for the differences in what is considered legal memory sharing can be seen in the following snippet of C code:
-\begin{minted}{C}
-    unsigned long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
-
-    pid_t pid = fork();
-    if (pid != 0) {
-        int lower = 0;
-        int upper = 4;
-        // changes elements at indices 0 to 4
-        modify_elements(data, lower, upper);
-    } else {
-        int lower = 5;
-        int upper = 9;
-        // changes elements at indices 5 to 9
-        modify_elements(data, lower, upper);
-    }
-\end{minted}
-There, an array of data (in this example integers, but in \emph{kmeans} it would be observations to classify) is to be manipulated by two concurrent threads.
-Since the developer wants to split the work evenly between both threads, she can assign both threads non-overlapping ranges to iterate over and let both threads work directly on the array.
-Without any locking, this is risky, as there is no control mechanism ensuring that both threads don't alter the memory regions of the other thread due to a bug in an index calculation or by writing too large portions of data to the array.
-Nonetheless, this is the fastest possible implementation (due to the absence of safeguards).
-In Rust however, this is impossible.
-The language itself does not allow this type of fast yet unsafe memory sharing, as the type system ensures that data shared across threads without locks is read-only.
-So, if one wants to implement the same algorithm shown in above listing without locks in Rust, the data must either be copied\footnote{In Rust jargon, this is called a \emph{clone}.} and sent to the respective threads (making a later consolidation of the changes made necessary) or the vector has to be split apart, each part moved into the scope of the respective thread.
-Both approaches are time-consuming, as in both cases new memory must be allocated for the new vectors and the data has to be copied or moved, not to mention the time it takes to consolidate the changes made afterwards.
-
 \begin{figure}
     \centering
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/kmeans-high_comb}
@@ -158,6 +128,42 @@ Both approaches are time-consuming, as in both cases new memory must be allocate
     \caption{CPU time used by both frameworks in the kmeans-high application.}%
     \label{fig:evaluation:kmeans-high-cpu}
 \end{figure}
+
+\paragraph{kmeans} Our \emph{kmeans} results show no clear winner in terms of performance.
+Although there were differences in the performance behavior between the high contention and low contention versions of the STAMP benchmark, the STM version written in Rust showcases in Figures~\ref{fig:evaluation:kmeans-high} and~\ref{fig:evaluation:kmeans-low} similar curve shapes for both sets of input data which are completely different from the results in Fig.~\ref{fig:evaluation:stamp}.
+This is most likely due to differences in the implementations of both benchmark versions.
+C-based programs allow ways of memory sharing that are irreproducible in Rust, forcing us to change some aspects of the program, probably causing these differences.
+
+\begin{listing}
+    \begin{minted}{C}
+        unsigned long data[] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+        pid_t pid = fork();
+        if (pid != 0) {
+            int lower = 0;
+            int upper = 4;
+            // changes elements at indices 0 to 4
+            modify_elements(data, lower, upper);
+        } else {
+            int lower = 5;
+            int upper = 9;
+            // changes elements at indices 5 to 9
+            modify_elements(data, lower, upper);
+        }
+    \end{minted}
+    \caption{Example for memory sharing that is possible in C, but impossible in Rust.}%
+    \label{fig:evaluation:sharing}
+\end{listing}
+
+An example for the differences in what is considered legal memory sharing can be seen in the snippet of C code shown in Listing~\ref{fig:evaluation:sharing}.
+There, an array of data (in this example integers, but in \emph{kmeans} it would be observations to classify) is to be manipulated by two concurrent threads.
+Since the developer wants to split the work evenly between both threads, she can assign both threads non-overlapping ranges to iterate over and let both threads work directly on the array.
+Without any locking, this is risky, as there is no control mechanism ensuring that both threads don't alter the memory regions of the other thread due to a bug in an index calculation or by writing too large portions of data to the array.
+Nonetheless, this is the fastest possible implementation (due to the absence of safeguards).
+In Rust however, this is impossible.
+The language itself does not allow this type of fast yet unsafe memory sharing, as the type system ensures that data shared across threads without locks is read-only.
+So, if one wants to implement the same algorithm shown in above listing without locks in Rust, the data must either be copied\footnote{In Rust jargon, this is called a \emph{clone}.} and sent to the respective threads (making a later consolidation of the changes made necessary) or the vector has to be split apart, each part moved into the scope of the respective thread.
+Both approaches are time-consuming, as in both cases new memory must be allocated for the new vectors and the data has to be copied or moved, not to mention the time it takes to consolidate the changes made afterwards.
 
 Overall, both benchmark sets show that there is no clear pattern for Ohua's performance with respect to the size of the input set.
 Each individual set of input data requires a specific number of iterations before the algorithm converges.
@@ -192,7 +198,12 @@ All in all, Ohua is on par or outperforms Software Transactional Memory in the s
     \label{fig:evaluation:genome}
 \end{figure}
 
-\newpage
+\begin{figure}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_genome_comb}
+    \caption{CPU time used by both frameworks in the genome application.}%
+    \label{fig:evaluation:genome-cpu}
+\end{figure}
 
 \paragraph{genome.} In \emph{genome}, the curve shapes of our STAMP results from Fig.~\ref{fig:evaluation:stamp} and the results from the STM version in Rust in Fig.~\ref{fig:evaluation:genome} are similar in the way that they exhibit peak performance for a medium amount of threads before it declines.
 What's striking is the difference in absolute speedups achieved by our Rust implementation.
@@ -204,13 +215,6 @@ While a more efficient library implementation using Rust's \emph{unsafe} feature
 Ohua manages to achieve clearly better speedups in all three test cases.
 The execution times remain relatively similar, indicating a steady amount or overhead, although we see an increasing CPU usage in Figure~\ref{fig:evaluation:genome-cpu}, indicating the increasing framework overhead.
 But due to the large portions of still sequential code, i.e., the nucleotide sequence deduplication, no real performance gains can be made.
-
-\begin{figure}
-    \centering
-    \includegraphics[width=\textwidth,keepaspectratio]{gfx/results/cpu_genome_comb}
-    \caption{CPU time used by both frameworks in the genome application.}%
-    \label{fig:evaluation:genome-cpu}
-\end{figure}
 
 
 \section{Summary}%
@@ -235,8 +239,3 @@ Overall, Ohua would indeed seem to be a promising replacement for STM-based shar
 While it is clearly not suited to be used for every type of shared state program, so is STM.
 Performance-wise Ohua will not always outperform Software Transactional Memory but manages to at least be on par with it, while yielding other positive properties like a deterministic execution model, often better energy efficiency, and easier to work with code bases due to the elimination of parallelism abstractions.
 Based on the benchmark results we assume, that Ohua will showcase the best performance behavior when used in applications with amorphous data parallelism as this allows it to not just parallelize state-free loops but also stateful loops using Transformation~2 and~3.
-
-% - present benchmark results -- maybe for the manual Ohua implementation as well, if results differ
-% - discuss why we perform better/worse at certain points
-% - we see the determinism!
-% - discuss energy usage etc
