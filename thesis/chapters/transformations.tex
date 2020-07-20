@@ -259,16 +259,3 @@ Hence, we applied a work-stealing task scheduling runtime to improve performance
 Admittedly, this optimization step is hardly a transformation but a mere engineering solution.
 It can be applied by changing the code generated for the set of \texttt{map} combinators produced by Transformation 1 presented in Section~\ref{sec:transformations:tf1}.
 Instead of generating a number of loop operators as originally intended, we can instead create a work-stealing runtime and schedule the loop operations as tasks in the runtime.
-
-
-
-
-
-% TODO: Zeigen, dass wir von einem simplen Start-Algo ausgehen (simpler als der im vorherigen Chapter) und der dann umgewandelt werden soll intern in das, was wir davor gezeigt haben.
-
-% - take the optimizations we've done and generalize them
-% - give formal definitions of the optimizations if possible
-%   - discuss the effect it has
-%   - are the optimizations semantics preserving?
-%   - is it *valid* to do these transformations?
-% - discuss whether the optimizations have to be applied in certain order

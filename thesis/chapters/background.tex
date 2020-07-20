@@ -25,7 +25,7 @@ Due to this structural peculiarity, compiler analyses struggle to uncover any me
 
 \begin{figure}[b]
     \centering
-    \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-irregular}
+    \includegraphics[width=.68\textwidth,keepaspectratio]{gfx/background-irregular}
     \caption{Graph representation of an irregular application with active elements and their neighborhoods. Adapted from Kulkarni et al.~\cite{kulkarni2009much}}%
     \label{fig:background:irregular}
 \end{figure}
@@ -41,8 +41,8 @@ Usually, work items are not ordered and may be processed in any order.
 But processing one element may generate an arbitrary number of new active elements or remove others from the pool, depending on the algorithm.
 Also, some active elements may not be processed simultaneously due to overlapping neighborhoods, as the changes made by processing both items may conflict with each other.
 
-Since all these relationships and interdependencies are not known beforehand but rather depend on the input data, this information cannot be uncovered and used by compile time analyses.
-Yet, most shared state applications are irregular applications by design, making this a large and interesting field of research.
+Since these relationships and interdependencies are not known beforehand and depend on the input data, this information cannot be uncovered by compile time analyses.
+Yet, most shared state applications are irregular by design, making this a large and interesting field of research.
 % Because static parallelization as well as lock-based approaches fail to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies such as \emph{Software Transactional Memory} need to be used to tackle this class of problems.
 Because static parallelization fails to uncover any viable parallelism opportunities in these programs, Kulkarni et al.~\cite{kulkarni2007optimistic} argue, that optimistic strategies need to be used to tackle this class of problems.
 % This is because, as we have shown, the heavy use of pointers in the program hinders efficient analyses but as conflicts due to parallelization may be rare (depending on the input data) the optimistic trial-and-abort semantics of STM allow for a simple and efficient parallelization in most cases.
@@ -81,10 +81,10 @@ If a lock is currently taken, all other threads seeking to acquire it have to wa
 This opens up a new set of problems, as frequent waiting leads to prolonged execution times.
 Mitigating contention issues forces developers to consider the trade-off between the overhead introduced by many fine-grained locks, resulting in a higher chance of an accidental deadlock, and high contention.
 
-Additionally, locking follows a pessimistic approach to parallelism\todo{elaborate (again)?}, which is completely unsuitable for uncovering any viable parallelism in irregular applications.
+Additionally, locking follows a pessimistic approach to parallelism, which is completely unsuitable for uncovering any viable parallelism in irregular applications.
 This is due to the fact that, as we have shown in the previous section, the heavy use of pointers in these programs hinders the efficient fine-grain use of locks, forcing developers to employ a coarse-grain locking strategy.
 But at the same time, conflicts due to parallelization in these programs may be rare, depending on the input data.
-It is possible to work on a large graph data structure in parallel with multiple threads without conflicts, when all threads work on non-overlapping portions of the program.\todo{link to previous fig?}
+It is possible to work on a large graph data structure in parallel with multiple threads without conflicts, when all threads work on non-overlapping portions of the program.
 In the example from Figure~\ref{fig:background:irregular} for instance, the nodes $n_1$, $n_2$ and $n_3$ could be processed in parallel without conflicts.
 Locking however is unable to provide this type of speculative approach to parallel execution necessary to efficiently parallelize these applications.
 
@@ -157,7 +157,7 @@ A completely different approach has been taken by Ertel et al.~\cite{ertel2019di
 It consists of three main components, as outlined in Fig.~\ref{fig:background:ohua}:
 \emph{Algorithms}, which are used to describe the program part that shall be parallelized, a \emph{compiler} that parses the algorithm and produces a parallelized version of it combined with a \emph{runtime} that will execute the parallel code.
 
-\begin{figure}[h]
+\begin{figure}[b]
     \includegraphics[width=\textwidth,keepaspectratio]{gfx/background-ohua}
     \caption{Overview of the Ohua compiler and its components}%
     \label{fig:background:ohua}
@@ -183,7 +183,7 @@ A stateful function is a host function that is associated with local state value
 Ohua encapsulates this operation and the associated state to ensure it is not leaked or used in a shared fashion.
 
 \begin{figure}[h]
-    \begin{subfigure}[h]{.5\textwidth}
+    \begin{subfigure}[b]{.5\textwidth}
         \begin{minted}{Rust}
             let words = vec!["a", "test"];
             let buffer = Buffer::new();
@@ -195,18 +195,19 @@ Ohua encapsulates this operation and the associated state to ensure it is not le
         \caption{Algorithm declaration in Rust}
         \label{fig:backend:smap:algo}
     \end{subfigure}
-    \begin{subfigure}[h]{.5\textwidth}
-        \missingfigure{Add DFG}
-        \caption{The algorithm's dataflow graph. Dependencies in the control flow are dotted.}
+    \begin{subfigure}[b]{.5\textwidth}
+        \centering
+        \includegraphics[width=.7\textwidth,keepaspectratio]{gfx/background-ohua-smap.pdf}
+        \caption{The algorithm's dataflow graph. Dependencies in the control flow are dotted, state dependencies dashed.}
         \label{fig:backend:smap:dfg}
     \end{subfigure}
-    \caption{Example of an Ohua algorithm using the \rust{smap} primitive.}%
+    \caption{Example of an Ohua algorithm using the \rust{smap} primitive. Adaption of~\cite{adam2019master}.}%
     \label{fig:background:smap}
 \end{figure}
 
 Ertel et al.\ additionally proposed \rust{smap}, a stateful map primitive that applies an algorithm to a sequence of items~\cite{ertel2019stclang} and is based on the insight, that loop operations modifying shared state can be considered as fold operations on the state.
 An example algorithm in Rust that outlines this is shown in Fig.~\ref{fig:background:smap}.
-Functions highlighted in red are builtin functions of the Ohua runtime, all other nodes are host functions provided by the developer.
+Functions highlighted in orange are builtin functions of the Ohua runtime, all other nodes are host functions provided by the developer.
 In our example, the \rust{smap} primitive is represented by the for loop and its use of the \rust{buffer} variable in the body.
 The loop body is applied to a sequence of items, just as it would happen in a normal \rust{map} statement.
 But additionally, \rust{smap} ensures that changes made to the encapsulated state persist, as they would in a normal \rust{for} loop.

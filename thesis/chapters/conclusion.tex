@@ -1,10 +1,10 @@
 % !TEX root = ../thesis.tex
 %
-\chapter{Conclusions}
+\chapter{Conclusion}
 \label{sec:conclusion}
 
 The Ohua framework presents a novel approach to writing parallel programs.
-By relieving the developer of the burden of having to use abstractions for introducing parallelism into the program, she is able to produce concise and less complex algorithms which are easier to maintain and verify.
+By relieving the developer of the burden of having to use abstractions for introducing parallelism into the program, she is able to write concise and less complex algorithms which are easier to maintain and verify.
 Parallelism is instead introduced into the application by the Ohua compiler itself, which extracts it from the algorithm using a set of transformations.
 State sharing however poses a challenge for Ohua, as its programming model only fosters local state and offers no synchronization primitives whatsoever.
 
@@ -14,9 +14,9 @@ Using these transformations, we implemented a selection of benchmarks from the S
 We chose a representative subset of applications based on the authors' categorization and used them to compare Ohua against Software Transactional Memory, a widely adopted framework for writing shared state applications.
 Our benchmark results showed that Ohua could indeed be a viable alternative to STM.
 Its performance was widely on par with STM, although results varied per application, while offering advantages in terms of code conciseness and verifiability.
-We found that in many examined shared state applications Ohua is unable to break up loops using shared state to exploit parallelism beyond state-free loops, as these loops are often just consisting of state modifications.
+We found that in many examined shared state applications Ohua is unable to break up loops using shared state to exploit parallelism beyond state-free loops, as these loops are often only consisting of state modifications.
 STM is able to break these patterns up using its speculative nature, but often at the cost of many retried computations.
-Ohua's determinism and reduced contention reduced the applications' execution times, managing to compensate the missing parallelism in these sections.
+Ohua's determinism and reduced contention improved the applications' execution times, managing to compensate the missing parallelism in these sections.
 However, the most performance gains and the best scaling behavior for Ohua were seen in applications exhibiting amorphous data parallelism.
 As these programs change their behavior when parallelizing them anyway, Ohua may apply slightly more aggressive transformations, allowing it to extract more parallelism than in non-amorphous applications.
 Hence, we hypothesize that Ohua will be the most effective when used on amorphous data parallel shared state applications.

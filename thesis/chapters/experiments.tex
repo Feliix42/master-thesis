@@ -99,7 +99,7 @@ When presenting each benchmark, we will provide a short assessment of the opport
 Goal of this analysis is to detect structural limitations within the benchmarks which one of the frameworks cannot overcome to exploit the full available parallelism.
 For this analysis, we produced an abstract prepresentation of each selected application which aims to point out a program's structural parallelism opportunities.
 To keep this representation concise and simple, we simplified each algorithm by removing loop conditions, abort conditions and any unnecessary computations.
-The resulting abstracted code snippets only contain the main operations performed on the input data to produce the end result as well as any shared state that may be used.
+The resulting abstracted code snippets only contain the main operations performed on the input data to produce the end result as well as any shared state used.
 
 
 \subsection{Labyrinth Path Mapping}
@@ -127,11 +127,6 @@ After finding a path for each input coordinate pair, the maze gets updated accor
 This intertwining of calculation and state update is customary to programs exhibiting amorphous data parallelism, as it creates these dependencies between separate calculations in the first place.
 When using STM for concurrency control, one can execute the whole loop in parallel, guarding each individual iteration using a transaction, resulting in the 100 \% transaction coverage reported in Table~\ref{tab:experiments:overview}.
 Ohua is also able to exploit the parallelism in this loop due to the Transformations~2 and~3, allowing both approaches to possibly exploit the maximal available parallelism.
-
-%The \emph{labyrinth} benchmark implements a variation of Lee's algorithm \cite{lee1961algorithm} which was conceived to solve path-connection problems that often arise e.g., when searching for an optimal route or when constructing wiring diagrams in electrical engineering.
-%Watson et al.~\cite{watson2007study} were the first to implement the algorithm using transactional memory techniques to measure the performance on such systems.
-%Based of their algorithm description, we implemented the benchmark, as it has been described in Chapter~\ref{sec:preliminary}\todo{verify correctness of this link}.
-%\todo{complete this: Ohua-Impl -> was ist parallel?, original perf \& expected perf}
 
 \subsection{Intruder Detection}
 \label{sec:experiments:intruder}
@@ -176,7 +171,7 @@ Also, it would not make sense to attempt to exploit parallelism from this loop u
 This shows that Ohua may only extract non-trivial parallelism from irregular applications that fit certain criteria, i.e., contain loops that do not solely consist of state-modifying operations, as its main approach is to exploit data parallelism by the use of certain transformations to uncover it.
 Both approaches manage to implement the state-free analysis loop (step three) in parallel as again no concurrency control is necessary.
 Ohua does this using Transformations~1 and~4.
-Our evaluation will show, whether it is more performant to attempt to exploit parallelism from the stateful loop or if a sequential approach as done in Ohua will perform better.
+Our evaluation will show, if it is more performant to attempt exploiting parallelism from the stateful loop or if a sequential approach as done in Ohua performs better.
 
 This benchmark was chosen because it is mostly similar in its properties to the labyrinth application as it also features short transactions and high contention on the shared data, but does only spend about 33 \% of the overall execution time in transactions.
 We mainly wanted to see, how this slight difference in properties is reflected in the performance results.
@@ -299,7 +294,7 @@ Although the authors themselves only measured results for the smaller two of the
 Upon building and executing the benchmarks with the included \texttt{tl2} STM implementation~\cite{minh2013stampcode}, a number of issues with the STAMP suite became apparent, which we already briefly touched upon in Chapter~\ref{sec:introduction}.
 The genome benchmark could not be built from the original source code, due to conflicts caused by compile-time memory allocation patching.
 We reported this issue~\cite{wittwer2020stampgenome} and employed a workaround to be able to use the benchmark nonetheless.
-Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash.\todo{[when time] report these issues on gihtub?}
+Additionally, we found that the implementation of the labyrinth benchmark sometimes does not yield a correct solution, causing the program to crash~\cite{wittwer2020labyrinth}.
 Similar behavior was found for the intruder application, although we did not investigate this further, instead discarding failed runs in both cases, lowering the effective number of test results slightly below 30.
 These issues cement some of the drawbacks of STAMP and STM in general, which we discussed in the beginning of this thesis.
 

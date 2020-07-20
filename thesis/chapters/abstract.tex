@@ -2,3 +2,17 @@
 %
 \chapter*{Abstract}
 \label{sec:abstract}
+
+The efficient parallelization of shared state applications has been an ongoing research topic ever since the advent of multi-core processors.
+Due to the properties some of these programs exhibit, such as amorphous data parallelism and the use of pointer-based data structures, conventional concurrency control mechanisms like locking fail to uncover any meaningful parallelism.
+Speculative parallelism approaches have been developed as a result, the most prominent representative being \emph{Software Transactional Memory}.
+But these frameworks have their own set of drawbacks like the lack of scalability and high overheads.
+It is unclear, whether approaches like implicit parallelism could be a feasible and more performant alternative to use for developing these applications.
+
+This thesis tries to find out, whether \emph{Ohua}, a framework for exploiting implicit parallelism, could be used for writing shared state programs and whether it could be an alternative to the by now aged STM.
+In order to do this, we tested in a preliminary study Ohua's usability in shared state environments. % as this had not been tested yet.
+We then proposed a set of transformations for Ohua to run at compile-time to automatically recognize and exploit parallelism from such applications.
+To compare Ohua then against STM, we tested both in a series of benchmarks that ressemble real-world applications.
+
+The evaluation shows that Ohua is not able to exploit parallelism in shared state applications to the same degree as STM does.
+Nonetheless, Ohua shows results that are widely on par with Software Transactional Memory and performs especially good in applications with amorphous data parallelism, validating our proposed transformations.

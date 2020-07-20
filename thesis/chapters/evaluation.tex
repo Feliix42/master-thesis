@@ -23,7 +23,7 @@ Subsequently, we will analyze the results of our Ohua benchmarks in detail to se
 
 Benchmark results for the reference measurement runs we conducted can be found in Figure~\ref{fig:evaluation:stamp}.
 We will compare our achieved speedups to the original benchmark runs from Minh et al.~\cite{minh2008stamp}, namely to the results of their Eager STM implementation to see, how performance of the framework changed over the years.
-This allows us to set realistic expectations for the performance of our own STM-based benchmark implementations.
+This allows us to set realistic expectations for the performance of our STM-based implementations.
 
 In the \emph{labyrinth} benchmark, we observed an increasing speedup for up to 8 threads in the small and medium sized problem sets, maxing at about 3.0 speedup and followed by declining performance for 16 threads.
 The largest input data set on the other hand exhibits a steadily increasing curve, achieving a speedup of about 6.0 for 16 threads.
@@ -34,7 +34,7 @@ An increased framework overhead on the other hand would also support the perform
 This was also discussed previously by Perfumo et al.~\cite{perfumo2008limits} who reported similar performance drops for STM applications with higher thread counts.
 Another explanation for this decline would be our used hardware architecture, as it consists of two CPUs.
 While all runs up to 8 threads can be executed on a single CPU, the 16 thread version requires the utilization of both cores, requiring more complex memory and resource management which in turn takes more time and may also be an explanation since we do not know if Minh et al.\ had similar hardware.
-But since we only made this and the following measurements as reference points for the data we acquired in our own experiments, we did not investigate the causes for this behavior beyond speculations to possible reasons and will leave this to future work.
+But since we only made this and the following measurements as reference points for the data we acquired in our own experiments, we did not investigate the causes for this behavior beyond speculations to possible reasons and leave this to future work.
 
 A similar deviation from the original measurements can be seen for the \emph{intruder} application.
 Our own results show a curve that peaks at 4 or 8 threads respectively, before declining again.
@@ -192,6 +192,8 @@ All in all, Ohua is on par or outperforms Software Transactional Memory in the s
     \label{fig:evaluation:genome}
 \end{figure}
 
+\newpage
+
 \paragraph{genome.} In \emph{genome}, the curve shapes of our STAMP results from Fig.~\ref{fig:evaluation:stamp} and the results from the STM version in Rust in Fig.~\ref{fig:evaluation:genome} are similar in the way that they exhibit peak performance for a medium amount of threads before it declines.
 What's striking is the difference in absolute speedups achieved by our Rust implementation.
 Likely causes for this include a by comparison more performant sequential implementation, which is possible as we developed these binaries independently from the other implementations which use one of the two frameworks while Minh et al.\ basically reuse the STM implementation, only removing any TM and threading code from it.
@@ -214,7 +216,7 @@ But due to the large portions of still sequential code, i.e., the nucleotide seq
 \section{Summary}%
 \label{sec:evaluation:summary}
 
-In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times\footnote{This is not immediately visible in the speedup plots in Chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
+In general, the experiments we've conducted have shown that Ohua's deterministic execution model does indeed lead to less variance in execution times. %\footnote{This is not immediately visible in the speedup plots in Chapter~\ref{sec:evaluation:benchmarks}, due to the formula used to determine speedup.}.
 Our achieved results are on par with those of STM in applications like the labyrinth benchmark, where it was able to break up the stateful loop using Transformation~2 and~3.
 Technically, we also outperformed Software Transactional Memory in the intruder and genome benchmarks but as STM achieved in both cases subpar results, it should be evaluated whether the STM library used can be optimized for a performance comparable to the C-based version or whether this is not an implementation-related but rather a framework-related issue before judging about this.
 

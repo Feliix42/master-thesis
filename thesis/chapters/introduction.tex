@@ -25,10 +25,10 @@ Should a conflict be detected, the transaction is simply rolled back and retried
 This framework has now been an integral tool for state sharing for a while, yet it has a number of problems that have been widely reported in research.
 These include a lack of scalability~\cite{perfumo2008limits} and too high framework overheads~\cite{cascaval2008software}.
 When we inspected and used STM code written as part of the widely used STAMP benchmark suite~\cite{minh2008stamp}, we also encountered issues:
-The code provided for some benchmarks does not always produce a correct result for the computation it implements, serving as an example for how hard it is to correctly write a program using Software Transactional Memory.
-Even worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues prove.\todo{Citation hier wäre nett}
+The code provided for some benchmarks does not always produce a correct result for the computation it implements~\cite{wittwer2020labyrinth}, serving as an example for how hard it is to correctly write a program using Software Transactional Memory.
+Even worse, using STM actually makes memory management inside the application even harder, as several irregularly occurring memory management issues~\cite{wittwer2020segmentation} prove.
 Finally, even though Software Transactional Memory aimed to relieve the programmer of the burden to manage locks manually, the framework itself may introduce deadlocks into the application, as will be shown in this thesis.
-Although this may be traced back to a bug within the framework itself this shows impressively that the implementation of this framework is indeed not trivial and that proving the correctness of the framework is hard.
+Although this may be traced back to a bug within the framework itself this shows impressively that the implementation of this framework is indeed not trivial and that proving its correctness is hard.
 
 \emph{Ohua}~\cite{ertel2015ohua}, on the other hand, does not have these problems.
 Proposed by Ertel et al., the framework allows for the creation of implicitly parallel programs.
@@ -42,13 +42,13 @@ Thus, it is incapable of handling shared state as of now.
 In this thesis, we want to test the usability of Ohua in shared state applications.
 Therefore, we will look at the theoretical foundations of the framework to see, whether they allow an extension to shared state.
 In order to then properly evaluate Ohua in this context, we are going to compare its performance to the well-established shared state programming framework STM, to see whether it could indeed be a suitable alternative to use for this field of applications.
-We make the following contributions:\todo{Überarbeiten bzw ausbauen!}
+We make the following contributions:
 
 \begin{itemize}
     \item Preliminary studies regarding the feasibility of applying Ohua to shared state scenarios where we tested, whether its theoretical foundations allow the introduction of parallelism in such applications.
     \item Descriptions and definitions of transformations for the Ohua compiler to run on input algorithms to enable it to automatically extract parallelism from shared state applications.
     \item A set of experiments where we applied Ohua to a number of such applications to test its performance in comparison to the STM framework.
-    % \item Updated benchmark results for
+    \item An evaluation of the question whether or not Ohua could be an alternative to the now-used STM framework for developing shared state applications.
 \end{itemize}
 
 The rest of this thesis is structured as follows:

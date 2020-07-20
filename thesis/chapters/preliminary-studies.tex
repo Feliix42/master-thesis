@@ -110,7 +110,7 @@ It deviated from the simple sequential implementation as well as STM's approach.
 But separating the update to the shared state from the search for paths was a deliberate choice to uncover parallelism opportunities for Ohua to begin with.
 We felt that this was a fair choice to make as it still describes the same algorithm as before, just slightly altered to match Ohua's current abilities and philosophy of fostering local state, as introduced in Chapter~\ref{fig:background:ohua}.
 
-% TODO: Maybe subsection?
+
 \subsection{First Results}
 
 To establish a baseline for performance comparison, we measured the execution time of both benchmarks and calculated the speedup in relation to a sequential implementation, as explained in greater detail in Chapter~\ref{sec:experiments:measurements}.
@@ -131,7 +131,7 @@ This single run exhibited a speedup of less than 0.5, meaning it took more than 
 The reason for this is the absence of any configuration options for e.g. worklist splits.
 Hence, there is no data parallelism in the Ohua algorithm, as the Rust runtime does not support parallel loops yet.
 Effectively, this single measurement shows the performance of a sequential algorithm executed with the Ohua runtime, revealing the overhead it has compared to a normal sequential implementation.
-Most of the overhead stems from the spawning of the threads each operator lives in and the resulting management and movement of data between these threads.\todo{[when time] Produce a diagram showing overhead in comparison}
+Most of the overhead stems from the spawning of the threads each operator lives in and the resulting management and movement of data between these threads.
 Our hope is to show that these overheads amortise with increased data parallelism.
 
 In order to achieve more data parallelism and an overall improved performance, we were looking for modifications that could be made to the Ohua algorithm to accomplish this.
@@ -348,7 +348,7 @@ After collecting the results from the runtime (line 12), the algorithm will proc
     \label{fig:preliminaries:ohua4}
 \end{listing}
 
-\begin{figure}[b]
+\begin{figure}
     \centering
     \includegraphics[width=.5\textwidth,keepaspectratio]{gfx/preliminaries-labyrinth/current-128x128x5}
     \caption{Measured speedup for an Ohua implementation using worklist splits, an update frequency of $2 \cdot threadcount$ and a work-stealing runtime.}%
@@ -358,7 +358,7 @@ After collecting the results from the runtime (line 12), the algorithm will proc
 In employing this runtime, we hoped to reduce the slack time seen in our first parallel implementation by moving work away from the longer-running threads to ones that finished quicker.
 Figure~\ref{fig:preliminaries:future-results} confirms this.
 Ohua now manages to achieve a threefold speedup compared to a sequential implementation of the benchmark, closing in on STM's performance.
-It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.\todo{[when time] calculate standard deviation/show scatter plot}
+It also benefits from its deterministic execution model, exhibiting a lower variation in the measured values than STM.
 The higher variance in STM's results is mainly due to the non-deterministic execution model, leading to a varying commit order for the mapped paths with each execution.
 This influences, which paths can be mapped successfully in a single run and how many write conflicts occur during execution which in turn has a direct effect on the predictability of the execution time.
 Ohua on the other hand is more deterministic.

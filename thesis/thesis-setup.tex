@@ -10,11 +10,11 @@
 % **************************************************
 % Information and Commands for Reuse
 % **************************************************
-\newcommand{\thesisTitle}{Ohua as an STM alternative for shared state applications}
+\newcommand{\thesisTitle}{Ohua as an STM Alternative for Shared State Applications}
 \newcommand{\thesisName}{Felix Wittwer}
 \newcommand{\thesisSubject}{Compiler Construction}
 \newcommand{\thesisDate}{July 20, 2020}
-\newcommand{\thesisVersion}{Draft-\today}
+\newcommand{\thesisVersion}{Final Issue}
 
 \newcommand{\thesisFirstReviewer}{Prof.\ Dr.-Ing.\ Jeronimo Castrillon}
 \newcommand{\thesisFirstReviewerUniversity}{\protect{TU Dresden}}
@@ -84,14 +84,16 @@
 \usepackage{multirow}
 \usepackage{subcaption}
 \usepackage{amsmath}
+% \usepackage{pdfpages}
+
+\usepackage[nottoc,chapter]{tocbibind}
 
 % minted
 \usepackage[chapter]{minted}
 \setminted{autogobble=true, linenos=true, breaklines=true}
 \usemintedstyle{friendly}
 
-\renewcommand{\listoflistingscaption}{\textbf{List of Listings}}
-
+\usepackage{microtype}
 
 
 % **************************************************
@@ -99,3 +101,8 @@
 % **************************************************
 
 \newcommand{\rust}[1]{\mintinline{rust}{#1}}
+
+% fix fonts
+\renewcommand\cfttoctitlefont{\usekomafont{chapter}}
+\renewcommand\cftloftitlefont{\usekomafont{chapter}}
+\renewcommand\cftlottitlefont{\usekomafont{chapter}}

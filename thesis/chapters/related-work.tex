@@ -158,7 +158,7 @@ Nona then creates several tasks, each containing a loop body, which are marked e
 The resulting program contains numerous hooks for profiling and a set of tasks which are to be executed.
 At runtime, the Morta executor takes care of executing the program and finding a parallelism configuration that is optimal for the execution environment.
 This happens by first executing a sequential version of the parallel regions and monitoring the execution using the third component, the Decima Monitor.
-Based on the gathered information, the execution scheme of the program is adjusted to optimize performance, which becomes a continuous process throughout the whole execution.
+Based on the gathered information, the execution scheme of the program is adjusted to optimize performance, which becomes a continuous process throughout execution. %the whole execution.
 
 To evaluate their work, Raman et al.\ chose applications from a variety of benchmark suites and implemented them using Parcae.
 In the \emph{kmeans} benchmark, which was chosen as representative from the STAMP suite, Parcae was able to improve performance by about 42 \% compared to a baseline parallel execution while only consuming 84 \% of the power a baseline parallel implementation consumed.
