@@ -36,6 +36,50 @@
 \titlepage
 \end{frame}
 
+\begin{frame}{Shared State Application: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \textbf{Given:} 3D maze, pairs of points\\[\baselineskip]
+
+      \uncover<2->{\textbf{Goal:} Map a path between each pair of points\\[\baselineskip]}
+
+      \uncover<3->{\textbf{Implementation:}}
+      \begin{itemize}
+      \item<3-> parallel search for new paths
+      \item<4-> merge paths into the maze\\\uncover<5->{$\rightarrow$ retry if path crosses other paths}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics<1-2>[width=.9\textwidth]{img/1-maze_points}%
+        \includegraphics<3>[width=.9\textwidth]{img/2-maze_paths}%
+        \includegraphics<4>[width=.9\textwidth]{img/4-maze_update2}%
+        \includegraphics<5->[width=.9\textwidth]{img/5-maze_update3}%
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+
+\begin{frame}{Shared State Application: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+        \begin{block}{Irregular Applications}
+            centered around the manipulation of pointer-based data structures
+        \end{block}
+
+        \begin{itemize}
+            \item compiler analyses struggle to uncover meaningful parallelism
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics[width=.9\textwidth]{img/5-maze_update3}%
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
 %\begin{frame}{Ohua\footnotemark[1]}
   %\begin{columns}
     %\begin{column}{0.7\textwidth}
