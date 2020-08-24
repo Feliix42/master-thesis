@@ -176,7 +176,8 @@
       \uncover<5->{\emph{Is Ohua a possible alternative to STM?}}
     \end{column}
     \begin{column}{0.25\textwidth}
-      \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{img/ohua}
+      \includegraphics<-2>[width=\textwidth,height=\textheight,keepaspectratio]{img/ohua}%
+      \includegraphics<3->[width=\textwidth,height=\textheight,keepaspectratio]{img/ohua_opt}%
     \end{column}
   \end{columns}
 
@@ -189,18 +190,45 @@
 
 \begin{frame}{Performance Comparison}
     \begin{itemize}
-        \item measured speedups for STM and Ohua
+        \item selected 4 representative benchmarks from STAMP\footnote[3]{Minh, Chi Cao, et al. "STAMP: Stanford transactional applications for multi-processing." 2008 IEEE International Symposium on Workload Characterization. IEEE, 2008.} suite\\ \
+        \item<2-> STAMP benchmarks are written in C using \texttt{tl2} library\\ \
+        \item<3-> had to be ported to \emph{safe} Rust
             \begin{itemize}
-                \item<2-> 4 representative benchmarks from STAMP\footnote[3]{Minh, Chi Cao, et al. "STAMP: Stanford transactional applications for multi-processing." 2008 IEEE International Symposium on Workload Characterization. IEEE, 2008.} suite
-                \item<3-> 3 different inputs\\ \ 
+                \item<3-> using library \texttt{rust-stm}
+                \item<4-> based on algorithm description (no 1:1 translation)
+                \item<5-> re-implemented specialized data structures
             \end{itemize}
-        \item<4-> Result verification
-            \begin{itemize}
-                \item<4-> Compare STAMP (C) results with our STM performance (Rust)
-                \item<5-> \textbf{Verification Criterion:} similar scaling behavior
-            \end{itemize}
-        \end{itemize}
+    \end{itemize}
 \end{frame}
+
+\begin{frame}{Performance Comparison}
+    \begin{itemize}
+        \item verified Rust port by comparing STAMP and Rust results
+            \begin{itemize}
+                \item<2-> \textbf{Verification Criterion:} similar scaling behavior\\ \
+            \end{itemize}
+        \item<3-> additionally developed Ohua implementations
+            \begin{itemize}
+                \item<3-> using newly developed transformations\\ \
+            \end{itemize}
+        \item<4-> compared speedups for STM and Ohua
+    \end{itemize}
+\end{frame}
+
+%\begin{frame}{Performance Comparison}
+    %\begin{itemize}
+        %\item measured speedups for STM and Ohua
+            %\begin{itemize}
+                %\item<2-> 4 representative benchmarks from STAMP\footnote[3]{Minh, Chi Cao, et al. "STAMP: Stanford transactional applications for multi-processing." 2008 IEEE International Symposium on Workload Characterization. IEEE, 2008.} suite
+                %\item<3-> 3 different inputs\\ \ 
+            %\end{itemize}
+        %\item<4-> Result verification
+            %\begin{itemize}
+                %\item<4-> Compare STAMP (C) results with Rust STM performance
+                %\item<5-> \textbf{Verification Criterion:} similar scaling behavior
+            %\end{itemize}
+        %\end{itemize}
+%\end{frame}
 
 \begin{frame}{Results: Labyrinth}
     \begin{columns}%
@@ -221,7 +249,8 @@
     \begin{columns}%
         \begin{column}{0.5\textwidth}
             \centering
-            \includegraphics[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/labyrinth++}
+            \includegraphics<-5>[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/labyrinth++}
+            \includegraphics<6->[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/labyrinth++_cpu}
         \end{column}%
         \begin{column}{0.5\textwidth}
             \begin{itemize}
@@ -231,8 +260,9 @@
                 \end{itemize}
                 \item<4-> STM: non-deterministic
                 \begin{itemize}
-                    \item<5-> varying number of conflicts
+                    \item<5-> varying execution order\\ \
                 \end{itemize}
+                \item<6-> Ohua uses equally much CPU time as STM
             \end{itemize}
         \end{column}
     \end{columns}
@@ -278,7 +308,7 @@
                 \item<4-> \textbf{Reason:} differences in memory sharing
                 \begin{itemize}
                     \item<5-> C version uses single copy of data structure
-                    \item<6-> Rust must create copies of data for each thread
+                    \item<6-> safe Rust requires copying of data for each thread
                 \end{itemize}
             \end{itemize}
         \end{column}
@@ -289,11 +319,17 @@
     \begin{columns}%
         \begin{column}{0.5\textwidth}
             \centering
-            \includegraphics[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/kmeans-low++}%
+            \includegraphics<-4>[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/kmeans-low++}%
+            \includegraphics<5->[width=\textwidth,height=.65\textheight,keepaspectratio]{img/results/kmeans-low++_cpu}%
         \end{column}%
         \begin{column}{0.5\textwidth}
             \begin{itemize}
-                \item TODO
+                \item<2-> Ohua does not perform as good as STM
+                \item<3-> performance reaches ceiling
+                \begin{itemize}
+                    \item<4-> indicates that not all available parallelism has been exploited\\ \
+                \end{itemize}
+                \item<5-> uses nearly constant, relatively low amount of CPU time
             \end{itemize}
         \end{column}
     \end{columns}
@@ -303,7 +339,7 @@
     \begin{columns}%
         \begin{column}{0.5\textwidth}
             \centering
-            \includegraphics[width=\textwidth,height=.65\textheight,keepaspectratio]{img/combined_plots/kmeans-high++}
+            \includegraphics[width=\textwidth,height=.65\textheight,keepaspectratio]{img/combined_plots/kmeans-high++}%
         \end{column}%
         \begin{column}{0.5\textwidth}
             \begin{itemize}
@@ -325,7 +361,7 @@
         \end{column}%
         \begin{column}{0.5\textwidth}
             \begin{itemize}
-                \item TODO
+                \item<2-> Ohua again reaches performance ceiling
             \end{itemize}
         \end{column}
     \end{columns}
@@ -358,26 +394,42 @@
             \item<2-> used for \texttt{labyrinth}
             \item<3-> only applicable for amorphous data parallel applications\\ \
         \end{itemize}
-        \item<4-> optimizing other irregular applications requires deeper insight into shared state usage
-        \begin{itemize}
-            \item<5-> workset partitioning could be used to parallelize state loops
-        \end{itemize}
+        \item<4-> optimizing other irregular applications requires deeper insight into shared state usage\\ \
+        \item<5-> Ohua uses often less or equally as much CPU time as STM
+        %\begin{itemize}
+            %\item<5-> workset partitioning could be used to parallelize state loops
+        %\end{itemize}
     \end{itemize}
 
-    \uncover<6->{
-    \begin{block}{Research Question}
-        How can we better understand workset partitionability to exploit this?
-    \end{block}}
+    %\uncover<6->{
+    %\begin{block}{Research Question}
+        %How can we better understand workset partitionability to exploit this?
+    %\end{block}}
 \end{frame}
 
+
+% TODO use coveragain?
 \begin{frame}{Conclusions}
-    \textbf{Could Ohua be an alternative to STM for shared state applications?}
+    \setbeamercovered{again covered={\opaqueness<1->{30}}}
+    \uncover<-3>{\textbf{Could Ohua be an alternative to STM for shared state applications?}}\\
+
+    %\vspace{1.5em}
+
+    \begin{itemize}
+        \item<2-3> yes, for \emph{some} applications
+        \item<3> can not yet uncover all available parallelism in other applications
+    \end{itemize}
 
     \vspace{1.5em}
 
+    \uncover<4->{\textbf{Future Work:}}\\
+
     \begin{itemize}
-        \item<2-> yes, for \emph{some} applications
-        \item<3-> further research into state partitioning necessary to exploit other applications
+        \item<4-> understand, how shared data structures could be partitioned for parallel accesses
+            \begin{itemize}
+                \item<5-> identifiable using certain functions defined on a type?
+                \item<6-> could a special data type be defined to allow better compiler insight?
+            \end{itemize}
     \end{itemize}
 \end{frame}
 
@@ -411,6 +463,62 @@
         kmeans & short & small & low & low\\\hline
         ssca2 & short & small & low & low\\\hline
     \end{tabular}
+\end{frame}
+
+\begin{frame}{Backup: Intruder Benchmark}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{img/experiments-intruder}
+\end{frame}
+
+\begin{frame}[fragile]{Backup: Intruder Benchmark}
+    \centering
+    \begin{minted}[bgcolor=rustcolor]{Rust}
+        let mut flows = State::new();
+        for packet in input {
+            flows.add(packet);
+        }
+
+        for flow in flows {
+            analyze(flow);
+        }
+    \end{minted}
+\end{frame}
+
+\begin{frame}[fragile]{Backup: k-means Benchmark}
+    \centering
+    \begin{minted}[bgcolor=rustcolor]{Rust}
+        let mut centers = initialize(input);
+        loop {
+            // data parallelism
+            for item in input {
+                item.find_center(centers);
+            }
+            // fold
+            centers = recompute(input);
+        }
+    \end{minted}
+\end{frame}
+
+\begin{frame}{Backup: Genome Benchmark - Overlap Matching}
+    \centering
+    \includegraphics[width=\textwidth,keepaspectratio]{img/experiments-genome}
+\end{frame}
+
+\begin{frame}[fragile]{Backup: Genome Benchmark}
+    \centering
+    \begin{minted}[bgcolor=rustcolor]{Rust}
+        let mut nucleotides = Hashset::new();
+        for segment in input {
+            // deduplication
+            nucleotides.insert(segment);
+        }
+
+        loop {
+            for item in nucleotides {
+                item.find_neighbor(nucleotides);
+            }
+        }
+    \end{minted}
 \end{frame}
 
 \begin{frame}[fragile]{Backup: Differences in Memory Sharing}
