@@ -45,119 +45,88 @@
 \titlepage
 \end{frame}
 
-\begin{frame}{Shared State Application: Labyrinth Benchmark}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-      \textbf{Given:} 3D maze, pairs of points\\[\baselineskip]
+\begin{frame}<1-8>[label=motivation]{Motivation}
+    \setbeamercovered{again covered={\opaqueness<1->{30}}}
+    \textbf{Parallelization approaches for shared state applications:}\\
 
-      \uncover<2->{\textbf{Goal:} Map a path between each pair of points\\[\baselineskip]}
-
-      \uncover<3->{\textbf{Implementation:}}
-      \begin{itemize}
-      \item<3-> parallel search for new paths
-      \item<4-> merge paths into the maze\\\uncover<5->{$\rightarrow$ retry if path crosses other paths}
-      \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{center}
-        \includegraphics<1-2>[width=.9\textwidth]{img/1-maze_points}%
-        \includegraphics<3>[width=.9\textwidth]{img/2-maze_paths}%
-        \includegraphics<4>[width=.9\textwidth]{img/4-maze_update2}%
-        \includegraphics<5->[width=.9\textwidth]{img/5-maze_update3}%
-      \end{center}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-
-\begin{frame}{Shared State Application: Labyrinth Benchmark}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-        \begin{block}{Irregular Applications}
-            centered around the manipulation of pointer-based data structures
-        \end{block}
-        
-        \hfill
-
-        \begin{itemize}
-            \item<2-> structure makes identification of safe parallel accesses hard
-            \item<3-> compiler analyses struggle to uncover meaningful parallelism
-        \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{center}
-        \includegraphics[width=.9\textwidth]{img/5-maze_update3}%
-      \end{center}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Shared State Application: Labyrinth Benchmark}
-  \begin{columns}
-    \begin{column}{0.5\textwidth}
-        \begin{block}{Amorphous Data Parallelism}
-            behaviour observed in some irregular applications
-        \end{block}
-
-        \hfill
-
-        \begin{itemize}
-            % \item behaviour observed in some irregular applications\\ \ 
-            \item<2-> processing one element may generate new work items or remove others
-            \item<4-> some items cannot be processed in parallel due to conflicts
-        \end{itemize}
-    \end{column}
-    \begin{column}{0.5\textwidth}
-      \begin{center}
-        \includegraphics<1-2>[width=.9\textwidth]{img/5-maze_update3}%
-        \includegraphics<3->[width=.9\textwidth]{img/6-maze_update-noconflict}%
-      \end{center}
-    \end{column}
-  \end{columns}
-\end{frame}
-
-\begin{frame}{Shared State Applications: Implementation}
-    % TODO: Give that slide some love?
-    \textbf{Problem:}\\
     \begin{itemize}
-        \item Compiler analyses struggle to uncover meaningful parallelism
-        \item<2-> Locking is too defensive
+        \item<2-3> Compiler analyses
+            \begin{itemize}
+                \item<3> struggle to uncover parallelism (no alias analysis etc)
+            \end{itemize}
+        \item<4-7> Locking
+            \begin{itemize}
+                \item<5-7> coarse grain locking doesn't scale
+                \item<6-7> fine grained locking is error-prone
+                \item<7> resulting program is non-deterministic
+            \end{itemize}
+        \item<8-> Software Transactional Memory
+            \begin{itemize}
+                \item<9-> solves composability problem
+                \item<10-> programs are still non-deterministic
+            \end{itemize}
     \end{itemize}
-
-    \vspace{1.5em}
-
-    \uncover<3->{\textbf{Solution:} Optimistic Parallelism}
 \end{frame}
 
-\begin{frame}[t]{Optimistic Parallelism: Software Transactional Memory\footnotemark[1]}
+%\begin{frame}{Shared State Applications}
+  %\begin{columns}%
+    %\begin{column}{0.5\textwidth}%
+        %\begin{itemize}
+            %\item shared state applications often use single global data structure\\ \
+            %\item<6-> compiler analyses struggle to uncover parallelism\\ \
+            %\item<7-> locking approach:
+                %\begin{itemize}
+                    %\item<8-> coarse grain locking doesn't scale
+                    %\item<9-> fine grained locking is error-prone
+                    %\item<10-> resulting program is non-deterministic
+                %\end{itemize}
+        %\end{itemize}
+
+    %\end{column}
+    %\begin{column}{0.5\textwidth}%
+      %\begin{center}%
+        %\includegraphics<1>[width=.9\textwidth]{img/0-maze_empty}%
+        %\includegraphics<2>[width=.9\textwidth]{img/1-maze_points}%
+        %\includegraphics<3>[width=.9\textwidth]{img/2-maze_paths}%
+        %\includegraphics<4>[width=.9\textwidth]{img/4-maze_update2}%
+        %\includegraphics<5-10>[width=.9\textwidth]{img/5-maze_update3}%
+        %\includegraphics<11->[width=.9\textwidth]{img/6-maze_update-noconflict}%
+      %\end{center}
+    %\end{column}
+  %\end{columns}
+%\end{frame}
+
+\begin{frame}[t]{Software Transactional Memory\footnotemark[1]}
     \centering%
-    \includegraphics<1-2>[width=.8\textwidth,keepaspectratio]{img/background-stm1}%
-    \includegraphics<3>[width=.8\textwidth,keepaspectratio]{img/background-stm2}%
-    \includegraphics<4>[width=.8\textwidth,keepaspectratio]{img/background-stm3}%
-    \includegraphics<5>[width=.8\textwidth,keepaspectratio]{img/background-stm4}%
-    \includegraphics<6-10>[width=.8\textwidth,keepaspectratio]{img/background-stm5}%
-    \includegraphics<11->[width=.8\textwidth,keepaspectratio]{img/background-stm_conf2}%
+    \includegraphics<1>[width=.8\textwidth,keepaspectratio]{img/background-stm1}%
+    \includegraphics<2>[width=.8\textwidth,keepaspectratio]{img/background-stm2}%
+    \includegraphics<3>[width=.8\textwidth,keepaspectratio]{img/background-stm3}%
+    \includegraphics<4>[width=.8\textwidth,keepaspectratio]{img/background-stm4}%
+    \includegraphics<5-6>[width=.8\textwidth,keepaspectratio]{img/background-stm5}%
+    \includegraphics<7->[width=.8\textwidth,keepaspectratio]{img/background-stm_conf2}%
     \flushleft
 
     \begin{itemize}
-        \only<1-7>{
+        %\only<1-7>{
             \item uses \emph{transactions} to guard access to shared data
-            \begin{itemize}
-                \item<2-> work similar to database transactions
-                \item<7-> ensure atomicity, consistency and isolation
-                % \item<4-> all changes within transaction take effect at once
-            \end{itemize}
-        }
-        \only<8-9>{
-            \item allows shared data access without blocking
-            \item<9-> \textbf{optimistic:} assumes only few conflicts will happen
-        }
-        \only<10->{
-            \item speculative parallelism leads to non-deterministic execution
-        }
+            %\begin{itemize}
+                %\item<2-> work similar to database transactions
+                %\item<7-> ensure atomicity, consistency and isolation
+                %% \item<4-> all changes within transaction take effect at once
+            %\end{itemize}
+        %}
+        %\only<8-9>{
+            \item<6-> allows shared data access without blocking
+            %\item<9-> \textbf{optimistic:} assumes only few conflicts will happen
+        %}
+        %\only<10->{
+            %\item speculative parallelism leads to non-deterministic execution
+        %}
     \end{itemize}
     \footnotetext[1]{Shavit, et al. "Software transactional memory." Distributed Computing 10.2 (1997): 99-116.}
 \end{frame}
+
+\againframe<8->{motivation}
 
 \begin{frame}{Ohua\footnotemark[2]}
   \begin{columns}
@@ -169,11 +138,13 @@
         \item<4-> Generates native runtime code
         \item<5-> \textbf{Result:} Deterministic parallel program
       \end{itemize}
-      % TODO: Zusätzlichen Punkt, der Ohua besser verkauft für dieses Problem.
 
       \vspace{1.5em}
 
-      \uncover<5->{\emph{Is Ohua a possible alternative to STM?}}
+      \uncover<6->{\textbf{Is Ohua a possible alternative to STM?}}
+      \begin{itemize}
+          \item<7-> Problem: Ohua only fosters local state
+      \end{itemize}
     \end{column}
     \begin{column}{0.25\textwidth}
       \includegraphics<-2>[width=\textwidth,height=\textheight,keepaspectratio]{img/ohua}%
@@ -184,9 +155,56 @@
   \footnotetext[2]{Ertel et al. "Towards Implicit Parallel Programming for Systems." dissertation, 2019.}
 \end{frame}
 
-\begin{frame}{Compiler Transformations}
-    % TODO
+\begin{frame}<1>[label=tfs]{Compiler Transformations}
+    \begin{itemize}
+        \item Transformation 1: Map parallelization\\ \
+        \item<2-> Transformation 2: State Decoupling\\ \
+        \item<3-> Transformation 3: Batch Updates
+            \begin{itemize}
+                \item<4-> process only $n$ elements from the input list\\ \
+            \end{itemize}
+        \item<5-> Transformation 4: Optimize Map parallelization
+            \begin{itemize}
+                \item<6-> reduce stragglers by implementing work stealing into the runtime
+            \end{itemize}
+    \end{itemize}
 \end{frame}
+
+\begin{frame}{Transformation 1}
+    \centering
+    \begin{columns}
+        \begin{column}{0.2\textwidth}%
+            \includegraphics[width=.7\textwidth,height=\textheight,keepaspectratio]{img/tf1_1}%
+        \end{column}%
+        \begin{column}{0.1\textwidth}%
+            \centering
+            \uncover<2->{$\longrightarrow$}
+        \end{column}%
+        \begin{column}{0.4\textwidth}%
+            \includegraphics<2->[width=\textwidth,height=.7\textheight,keepaspectratio]{img/tf1_2}%
+        \end{column}%
+    \end{columns}
+\end{frame}
+
+\againframe<1-2>{tfs}
+
+\begin{frame}{Transformation 2}
+    \centering
+    \begin{columns}
+        \begin{column}{0.3\textwidth}%
+            \includegraphics[width=\textwidth,height=\textheight,keepaspectratio]{img/tf2_1}%
+        \end{column}%
+        \begin{column}{0.1\textwidth}%
+            \centering
+            \uncover<2->{$\longrightarrow$}
+        \end{column}%
+        \begin{column}{0.5\textwidth}%
+            \includegraphics<2->[width=\textwidth,height=.7\textheight,keepaspectratio]{img/tf2_2}%
+        \end{column}%
+    \end{columns}
+\end{frame}
+
+\againframe<2->{tfs}
 
 \begin{frame}{Performance Comparison}
     \begin{itemize}
@@ -239,7 +257,6 @@
         \begin{column}{0.5\textwidth}
             \begin{itemize}
                 \item[\done]<2-> similar scaling behavior\\ \ 
-                % \item TODO
             \end{itemize}
         \end{column}
     \end{columns}
@@ -282,8 +299,7 @@
             \uncover<3->{\textbf{Possible Reasons:}}
             \begin{itemize}
                 \item<3-> STAMP is heavily optimized \\ (e.g., own HashMap)
-                \item<4-> tried to replicate this in Rust
-                % TODO fix this
+                \item<4-> larger framework overhead in rust-stm
             \end{itemize}
         \end{column}
     \end{columns}
@@ -294,8 +310,6 @@
         \begin{column}{0.5\textwidth}
             \centering
             \includegraphics<-6>[width=\textwidth,height=.65\textheight,keepaspectratio]{img/combined_plots/kmeans-low++}%
-            %\includegraphics<7->[width=\textwidth,height=.65\textheight,keepaspectratio]{img/combined_plots/kmeans-low++}%
-            % TODO: Show CPU use?
         \end{column}%
         \begin{column}{0.5\textwidth}
             \begin{itemize}
@@ -394,7 +408,7 @@
             \item<2-> used for \texttt{labyrinth}
             \item<3-> only applicable for amorphous data parallel applications\\ \
         \end{itemize}
-        \item<4-> optimizing other irregular applications requires deeper insight into shared state usage\\ \
+        \item<4-> optimizing other applications requires deeper insight into shared state usage\\ \
         \item<5-> Ohua uses often less or equally as much CPU time as STM
         %\begin{itemize}
             %\item<5-> workset partitioning could be used to parallelize state loops
@@ -463,6 +477,76 @@
         kmeans & short & small & low & low\\\hline
         ssca2 & short & small & low & low\\\hline
     \end{tabular}
+\end{frame}
+
+\begin{frame}{Backup: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+      \textbf{Given:} 3D maze, pairs of points\\[\baselineskip]
+
+      \uncover<2->{\textbf{Goal:} Map a path between each pair of points\\[\baselineskip]}
+
+      \uncover<3->{\textbf{Implementation:}}
+      \begin{itemize}
+      \item<3-> parallel search for new paths
+      \item<4-> merge paths into the maze\\\uncover<5->{$\rightarrow$ retry if path crosses other paths}
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics<1-2>[width=.9\textwidth]{img/1-maze_points}%
+        \includegraphics<3>[width=.9\textwidth]{img/2-maze_paths}%
+        \includegraphics<4>[width=.9\textwidth]{img/4-maze_update2}%
+        \includegraphics<5->[width=.9\textwidth]{img/5-maze_update3}%
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Shared State Application: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+        \begin{block}{Irregular Applications}
+            centered around the manipulation of pointer-based data structures
+        \end{block}
+        
+        \hfill
+
+        \begin{itemize}
+            \item<2-> structure makes identification of safe parallel accesses hard
+            \item<3-> compiler analyses struggle to uncover meaningful parallelism
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics[width=.9\textwidth]{img/5-maze_update3}%
+      \end{center}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Shared State Application: Labyrinth Benchmark}
+  \begin{columns}
+    \begin{column}{0.5\textwidth}
+        \begin{block}{Amorphous Data Parallelism}
+            behaviour observed in some irregular applications
+        \end{block}
+
+        \hfill
+
+        \begin{itemize}
+            % \item behaviour observed in some irregular applications\\ \ 
+            \item<2-> processing one element may generate new work items or remove others
+            \item<4-> some items cannot be processed in parallel due to conflicts
+        \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{center}
+        \includegraphics<1-2>[width=.9\textwidth]{img/5-maze_update3}%
+        \includegraphics<3->[width=.9\textwidth]{img/6-maze_update-noconflict}%
+      \end{center}
+    \end{column}
+  \end{columns}
 \end{frame}
 
 \begin{frame}{Backup: Intruder Benchmark}
