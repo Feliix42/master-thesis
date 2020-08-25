@@ -116,7 +116,7 @@
             %\end{itemize}
         %}
         %\only<8-9>{
-            \item<6-> allows shared data access without blocking
+            \item<6-> allows shared data access without locking
             %\item<9-> \textbf{optimistic:} assumes only few conflicts will happen
         %}
         %\only<10->{
@@ -229,7 +229,7 @@
             \begin{itemize}
                 \item<3-> using newly developed transformations\\ \
             \end{itemize}
-        \item<4-> compared speedups for STM and Ohua
+        \item<4-> compared speedups \& CPU use for STM and Ohua
     \end{itemize}
 \end{frame}
 
@@ -568,6 +568,11 @@
     \end{minted}
 \end{frame}
 
+\begin{frame}{Backup: Intruder Benchmark}
+    \centering
+    \includegraphics[width=.5\textwidth,height=.7\textheight,keepaspectratio]{img/results/intruder+}
+\end{frame}
+
 \begin{frame}[fragile]{Backup: k-means Benchmark}
     \centering
     \begin{minted}[bgcolor=rustcolor]{Rust}
@@ -603,6 +608,11 @@
             }
         }
     \end{minted}
+\end{frame}
+
+\begin{frame}{Backup: Genome Benchmark}
+    \centering
+    \includegraphics[width=.5\textwidth,height=.7\textheight,keepaspectratio]{img/results/genome++}
 \end{frame}
 
 \begin{frame}[fragile]{Backup: Differences in Memory Sharing}
